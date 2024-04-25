@@ -1,0 +1,5 @@
+.vscode
+.venv
+WorkDir/
+Output/
+Test/
