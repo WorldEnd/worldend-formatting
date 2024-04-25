@@ -7,6 +7,16 @@ import subprocess
 import time
 from pathlib import Path, PurePosixPath
 
+try:
+    from xelatex_config import xelatex_extra_args, xelatex_output_directory, xelatex_job_name
+except ImportError:
+    print("XeLaTeX configuration is incomplete or does not exist. Using default values instead.")
+
+    # Provide default values if the config file doesn't exist
+    xelatex_extra_args = ["-interaction=batchmode", "-enable-installer"]
+    xelatex_output_directory = "-output-directory"
+    xelatex_job_name = "-job-name"
+
 import cv2
 import numpy as np
 from Lib.config import (Book, Chapter, ImageInfo, ImagesConfig, Part,
@@ -29,7 +39,10 @@ def format_text(text: str) -> str:
     text = text.replace(r"</i>", r"}")
     text = text.replace(r"<em>", r"\textit{")
     text = text.replace(r"</em>", r"}")
-    
+
+    text = text.replace(r"<u>", r"\underline{")
+    text = text.replace(r"</u>", r"}")
+
     text = text.replace(r"<b>", r"\textbf{")
     text = text.replace(r"</b>", r"}")    
     text = text.replace(r"<strong>", r"\textbf{")
@@ -132,11 +145,13 @@ def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path
     tex_inputs = env_path_prepend(os.environ.get("TEXINPUTS"), work_dir, ".")
     
     args = [
-        "xelatex", "-interaction=batchmode", "-enable-installer",
-        f"-output-directory={str(intermediate_output_directory)}",
-        f"-job-name={output_stem}",
+        "xelatex",
+        *xelatex_extra_args,
+        f"{xelatex_output_directory}={str(intermediate_output_directory)}",
+        f"{xelatex_job_name}={output_stem}",
         f"{main_tex_file}"
     ]
+
     env = os.environ.copy()
     env["TEXINPUTS"] = tex_inputs
     print("==Starting xelatex==")

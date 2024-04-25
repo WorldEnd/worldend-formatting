@@ -4,3 +4,4 @@ WorkDir/
 Output/
 Test/
 *.pyc
+Scripts/xelatex_config.py
