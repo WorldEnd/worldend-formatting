@@ -1,0 +1,164 @@
+% use xelatex
+
+% ======= Write out page numbers to aux file =======
+\newwrite\pageNumbersFile
+\immediate\openout\pageNumbersFile=\jobname.page-numbers.txt
+
+% ======= Include generated config =======
+\input{config.tex}
+
+% ======= Page size and margins =======
+\documentclass[twoside]{minimal}
+
+\providecommand{\bleedSize}{0.0in}
+
+\usepackage[
+  paperwidth=\dimexpr5.5in + \bleedSize + \bleedSize\relax,
+  paperheight=\dimexpr8.25in + \bleedSize + \bleedSize\relax,
+  inner=\dimexpr0.7in + \bleedSize\relax,
+  outer=\dimexpr0.45in + \bleedSize\relax,
+  bottom=\dimexpr0.75in + \bleedSize\relax,
+  top=0in, % total is 0.875 in for top
+  headsep=0.5in,
+  headheight=\dimexpr0.375in + \bleedSize\relax,
+  includehead
+]{geometry}
+
+\setlength\parindent{0.2in}
+\setlength{\parskip}{0pt}
+
+% ======= Fonts =======
+\usepackage[no-math]{fontspec}
+
+\newfontfamily{\athiti}[Path = ../Fonts/Athiti/,
+    Extension = .ttf,
+    UprightFont = *-Regular,
+    BoldFont = *-Bold,
+    FontFace={el}{n}{*-ExtraLight},
+    FontFace={l}{n}{*-Light},
+    FontFace={m}{n}{*-Medium},
+    FontFace={sb}{n}{*-SemiBold},
+]{Athiti}
+
+\setmainfont [ Path = ../Fonts/AGaramondPro/,
+    Extension = .ttf,
+    UprightFont = *-Regular,
+    ItalicFont = *-Italic,
+    BoldFont = *-Bold,
+    BoldItalicFont = *-BoldItalic,
+    FontFace = {sb}{n}{*-Semibold},
+    FontFace = {sb}{it}{*-SemiboldItalic},
+    Scale=1.1,
+    WordSpace=1.1,
+    PunctuationSpace=0.0,
+    LetterSpace = 0.0
+]
+{AGaramondPro}
+
+\linespread{1.2}
+
+% ======= Convert " to LaTeX quotes =======
+\usepackage [english]{babel}
+\usepackage [autostyle, english = american]{csquotes}
+\MakeOuterQuote{"}
+
+% ======= Utilities =======
+\usepackage{tikz}
+
+\newcommand{\textof}[2][sb]{{\fontseries{#1}\selectfont #2}}
+\newcommand*\newleftpage{\newpage\ifodd\value{page}\hbox{}\thispagestyle{empty}\newpage\fi}
+\newcommand*\newrightpage{\newpage\ifodd\value{page}\else\hbox{}\thispagestyle{empty}\newpage\fi}
+
+\hfuzz=2000pt
+\vfuzz=2000pt
+\hbadness=\maxdimen
+\vbadness=\maxdimen
+
+% ======= Header =======
+\usepackage{fancyhdr}
+\setlength{\footskip}{5pt}
+
+\fancyhf{} % clear all header fields
+\fancyhead[LE,RO]{\athiti\fontsize{7}{1}\selectfont \textof[m]{\thepage}}
+\fancyhead[CE]{\athiti\fontsize{7}{1}\selectfont \hspace{0.25in}{\fontseries{sb}\selectfont WORLDEND2}: \textof[m]{What Do You Do at the End of the World? Could We Meet Again Once More?,} \textof[el]{\volumeNumberHeaderText}}
+\renewcommand{\headrulewidth}{0pt}
+
+\newcommand{\setChapterTitleInHeader}[2]{\fancyhead[CO]{\athiti\fontsize{7.5}{1}\selectfont \textof[sb]{\uppercase{#1}} \textof[m]{-{\lowercase{#2}}-}\hspace{0.25in}}}
+
+% ======= Page Number =======
+
+\setcounter{page}{-9999}
+
+% Reset the page number to arg1 if this is the first time we have called this command
+\newcommand{\startAtPageNumber}[1]{
+  \ifnum0>\thepage\relax
+    \setcounter{page}{#1}
+  \fi
+}
+
+% ======= Content Commands =======
+\newcommand{\icon}{
+  % The icon takes up 3 lines
+  \begin{center}
+  \vphantom{1}
+  
+  \vphantom{2}\raisebox{-0.09in}[0em][0em]{\includegraphics[height=0.24in]{../Images/ornament.png}}\vphantom{2}
+  
+  \vphantom{3}
+  \end{center}
+}
+
+\newcommand{\sectionTitleStyle}{\athiti\fontsize{11}{11}\fontseries{sb}\selectfont}
+
+\newcommand{\beginChapter}[3][{\phantom{No header}}]{
+  \newrightpage
+  \setChapterTitleInHeader{#2}{#3}
+  \pagestyle{fancy}
+  \startAtPageNumber{5}
+  \thispagestyle{empty} %The blank space when starting a new chapter is 9 lines. The section title (if it exists) is around the middle, a bit below line 5
+  \vphantom{1}\par\vphantom{2}\par\vphantom{3}\par\vphantom{4}\par
+  \noindent\vphantom{5}\begin{picture}(0, 0)\put(0, -0.3\baselineskip){\sectionTitleStyle #1}\end{picture}\par
+  \vphantom{6}\par\vphantom{7}\par\vphantom{8}\par\vphantom{9}
+  \write\pageNumbersFile{ChapterPageNumber: \thepage}
+}
+
+\newcommand{\beginPart}[1]{
+  % The blank space when starting a new section is 3 lines. The section title is around the middle, a bit below line 2
+  \vphantom{1}
+  
+  \noindent\vphantom{2}\begin{picture}(0, 0)\put(0, -0.09\baselineskip){\sectionTitleStyle #1}\end{picture}
+  
+  \vphantom{3}
+}
+
+\newcommand{\insertPartText}[1]{\noindent\input{#1}}
+
+% ======= Image Commands =======
+
+\ifx \dontPrintImages \undefined
+  \newcommand{\insertTikzPicture}[2]{
+    \begin{tikzpicture}[remember picture,overlay,every node/.style={inner sep=0,outer sep=0}]
+      \node[anchor=#1, yshift=0pt,xshift=0pt]%
+          at (current page.#1)
+          {\includegraphics[height=\paperheight]{#2}};
+    \end{tikzpicture}
+  }
+\else
+  \newcommand{\insertTikzPicture}[2]{\phantom{1}}
+\fi
+
+\newcommand{\insertSingleImage}[1]{
+  \newpage\thispagestyle{empty}\insertTikzPicture{north west}{#1}
+}
+
+\newcommand{\insertDoubleImage}[1]{
+  \newleftpage\thispagestyle{empty}\insertTikzPicture{north west}{#1}
+  \newrightpage\thispagestyle{empty}\insertTikzPicture{north east}{#1}
+}
+
+
+\begin{document}
+
+\input{content.tex}
+
+\end{document}

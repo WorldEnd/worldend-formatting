@@ -1,0 +1,16 @@
+The ellipsis … has a space after it where it would start a new sentence, and doesn't otherwise. 
+
+Rules:
+- If it starts the line or starts the quote, or already has a space before it, it doesn't have a space after it. 
+- If it is followed by a lowercase letter, it doesn't have a space after it.
+- If it is  before a capital letter, it usually has a space after it, but not if it's before something that would be capitalized anyway like someone's name or the word "I".
+
+Formatting:
+
+(…)|(\.\.\.) => #…
+
+Shouldn't have space:
+([\r\n\s"'“”‘’….(?!]>)#…[ ]? => $1…
+#…[ ]?([a-z”’….)\r\n?!<]) => …$1
+
+Manually review anything which still has a #

@@ -3,3 +3,4 @@
 WorkDir/
 Output/
 Test/
+*.pyc
