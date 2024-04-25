@@ -19,7 +19,7 @@ def in_curlies(s):
     return "{" + str(s) + "}"
 
 def env_path_prepend(s_old: str, *args) -> str:
-    l = args
+    l = list(args)
     if s_old and not s_old.isspace():
         l.append(s_old)
     return os.pathsep.join(str(x) for x in l)
