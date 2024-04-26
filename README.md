@@ -1,5 +1,14 @@
-Still very much a work-in-progress.
+**Note:** Still very much a work-in-progress.
 
-Prerequisites are the Python packages in `Script/requirements.txt` and `xelatex` in your path.
+# Prerequisites
+You should have the following:
 
-Example usage: `python ./Scripts/output_tex.py "./Volumes/Volume 3" "./Output"`
+1. Python packages listed in `Scripts/requirements.txt`
+2. `xelatex` in  your PATH
+
+# Usage
+Once you have completed all the prerequisites, you can run `Scripts/output_tex.py`:
+
+```sh
+python ./Scripts/output_tex.py "./Volumes/Volume 3" "./Output"
+```

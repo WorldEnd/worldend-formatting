@@ -41,7 +41,10 @@ def format_text(text: str) -> str:
     text = text.replace(r"</i>", r"}")
     text = text.replace(r"<em>", r"\textit{")
     text = text.replace(r"</em>", r"}")
-    
+
+    text = text.replace(r"<u>", r"\underline{")
+    text = text.replace(r"</u>", r"}")
+
     text = text.replace(r"<b>", r"\textbf{")
     text = text.replace(r"</b>", r"}")    
     text = text.replace(r"<strong>", r"\textbf{")
