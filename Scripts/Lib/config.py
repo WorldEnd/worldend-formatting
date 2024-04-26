@@ -4,7 +4,13 @@ import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from pathlib import Path
-from typing import Iterator, Literal, override
+from typing import Iterator, Literal
+
+try:
+    from typing import override
+except ImportError:
+    def override(f): 
+        return f
 
 import numpy as np
 import oyaml as yaml
@@ -144,7 +150,7 @@ class ImagesConfig(DebugPrintable):
             case "double":
                 image = DoubleImage()
             case _:
-                raise ValueError(f"Unexpected image type `{node["image_type"]}`")
+                raise ValueError(f"Unexpected image type `{node['image_type']}`")
         image.parent = self
         image._filename = filename
         image._subdir = subdirectory

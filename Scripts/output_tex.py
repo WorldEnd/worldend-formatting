@@ -2,18 +2,30 @@ import argparse
 import itertools
 import os
 import re
+import shlex
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path, PurePosixPath
 
+import colors
 import cv2
 import numpy as np
+from argparse_color_formatter import ColorHelpFormatter
 from Lib.config import (Book, Chapter, ImageInfo, ImagesConfig, Part,
                         parse_book_config, parse_image_config)
 from Lib.project_dirs import common_dir
 from PIL import Image
 
+xelatex_default_windows = 'xelatex -interaction=batchmode -enable-installer -output-directory={OUTPUT_DIRECTORY} -job-name={JOB_NAME} {TEX_FILE}'
+xelatex_default_linux = 'xelatex -interaction=batchmode -output-directory={OUTPUT_DIRECTORY} -jobname={JOB_NAME} {TEX_FILE}'
+if sys.platform.startswith('win32'): # Windows
+    xelatex_command_default = xelatex_default_windows
+elif sys.platform.startswith('linux'): # Linux
+    xelatex_command_default = xelatex_default_linux
+else: # All others, currently the same default as Linux
+    xelatex_command_default = xelatex_default_linux
 
 def in_curlies(s):
     return "{" + str(s) + "}"
@@ -23,7 +35,7 @@ def env_path_prepend(s_old: str, *args) -> str:
     if s_old and not s_old.isspace():
         l.append(s_old)
     return os.pathsep.join(str(x) for x in l)
-    
+
 def format_text(text: str) -> str:  
     text = text.replace(r"<i>", r"\textit{")
     text = text.replace(r"</i>", r"}")
@@ -100,7 +112,7 @@ def image_latex_command(img_info: ImageInfo) -> str:
         else:
             raise AssertionError(img_info.image_type)
 
-def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path, work_dir: Path, bleed = False, dont_print_images = False):   
+def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path, work_dir: Path, bleed = False, dont_print_images = False, xelatex_command_line: str = xelatex_command_default):   
     content_lines = []
     for img_info in image_config.insert_images.values():
         content_lines.append(image_latex_command(img_info))
@@ -132,10 +144,8 @@ def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path
     tex_inputs = env_path_prepend(os.environ.get("TEXINPUTS"), work_dir, ".")
     
     args = [
-        "xelatex", "-interaction=batchmode", "-enable-installer",
-        f"-output-directory={str(intermediate_output_directory)}",
-        f"-job-name={output_stem}",
-        f"{main_tex_file}"
+        arg.format(OUTPUT_DIRECTORY=intermediate_output_directory, JOB_NAME=output_stem, TEX_FILE=main_tex_file)
+        for arg in shlex.split(xelatex_command_line)
     ]
     env = os.environ.copy()
     env["TEXINPUTS"] = tex_inputs
@@ -186,26 +196,31 @@ def crop_and_pad_mat(mat, pad_crop_values):
 def crop_mat(mat, crop_values):
     crop_values = tuple(crop_values) + (((0, 0),) * (len(mat.shape) - len(crop_values)))
     slices = tuple(slice(start or None, -end or None) for start, end in crop_values)
-    return mat[*slices]
+    ret = mat.__getitem__(slices)
+    return ret
 
 def cv2_to_pil(img, from_space="BGR", to_space="RGB"):
     flag = getattr(cv2, f"COLOR_{from_space}2{to_space}")
     converted = cv2.cvtColor(img, flag)
     return Image.fromarray(converted, to_space)
 
-def main():
+def main():    
     parser = argparse.ArgumentParser(
                         prog='md_to_tex',
-                        description='Converts the input .md files to .tex files')
+                        description='Converts the input .md files to .tex files',
+                        formatter_class=ColorHelpFormatter)
     
     parser.add_argument("input_dir")
     parser.add_argument("output_dir")
     parser.add_argument('--bleed', '-b', action='store_true', help="Add bleed to the output file, for printing")
     parser.add_argument('--skip-images', '-s', action='store_true', help="Skip generating the images. Will use previously generated images. Speeds up execution")
     parser.add_argument('--dont-print-images', '-d', action='store_true', help="Don't print the images to the PDF. Greatly speeds up execution.")
-
-    args = parser.parse_args()
+    parser.add_argument('--xelatex-command-line', '-x',
+                        default = xelatex_command_default,
+                        help=f"Allow overriding the command used to call xelatex.\n This will be formatted with str.format, with keyword arguments OUTPUT_DIRECTORY, JOB_NAME, and TEX_FILE. The default is `{colors.faint(xelatex_default_windows)}` on Windows, and `{colors.faint(xelatex_default_linux)}` on Linux and other systems")
     
+    args = parser.parse_args()
+
     input_dir = Path(args.input_dir).absolute()
     
     book_config = parse_book_config(input_dir)
@@ -220,13 +235,12 @@ def main():
     os.makedirs(work_dir, exist_ok=True)
     work_dir = work_dir.resolve()
     
-    
     images_config = parse_image_config(book_config.directory / "Images")
     if not args.skip_images:
         generate_images(images_config, work_dir, args.bleed)
         time.sleep(5)
     
-    convert_book(book_config, images_config, output_dir, work_dir, args.bleed, args.dont_print_images)
+    convert_book(book_config, images_config, output_dir, work_dir, args.bleed, args.dont_print_images, args.xelatex_command_line)
 
 if __name__ == '__main__':
     main()

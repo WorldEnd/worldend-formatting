@@ -2,3 +2,5 @@ oyaml
 pillow
 numpy
 opencv-python
+argparse-color-formatter
+ansicolors
