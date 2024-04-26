@@ -7,6 +7,8 @@ import shutil
 import subprocess
 import sys
 import time
+import logging
+import colorlog
 from pathlib import Path, PurePosixPath
 
 import colors
@@ -18,8 +20,27 @@ from Lib.config import (Book, Chapter, ImageInfo, ImagesConfig, Part,
 from Lib.project_dirs import common_dir
 from PIL import Image
 
-xelatex_default_windows = 'xelatex -interaction=batchmode -enable-installer -output-directory={OUTPUT_DIRECTORY} -job-name={JOB_NAME} {TEX_FILE}'
-xelatex_default_linux = 'xelatex -interaction=batchmode -output-directory={OUTPUT_DIRECTORY} -jobname={JOB_NAME} {TEX_FILE}'
+formatter = colorlog.ColoredFormatter(
+    '%(log_color)s%(levelname)s: %(message)s',
+    log_colors={
+        'DEBUG': 'cyan',
+        'INFO': 'green',
+        'WARNING': 'yellow',
+        'ERROR': 'red',
+        'CRITICAL': 'bold_red',
+    }
+)
+
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+
+logger = logging.getLogger(__name__)
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
+
+xelatex_default_windows = 'xelatex -interaction={MODE} -enable-installer -output-directory={OUTPUT_DIRECTORY} -job-name={JOB_NAME} {TEX_FILE}'
+xelatex_default_linux = 'xelatex -interaction={MODE} -output-directory={OUTPUT_DIRECTORY} -jobname={JOB_NAME} {TEX_FILE}'
+
 if sys.platform.startswith('win32'): # Windows
     xelatex_command_default = xelatex_default_windows
 elif sys.platform.startswith('linux'): # Linux
@@ -72,9 +93,9 @@ def format_text(text: str) -> str:
     
     m = re.search(r"<[^\r\n<>]+>", text)
     if m is not None:
-        print(f"Warning: Possible unprocessed HTML tag `{m.group(0)}`. " +
-            "If this is an error, processing for this tag needs to be" +
-            "added in mid_to_tex.py:format_text")
+        logger.warning(f"Possible unprocessed HTML tag `{m.group(0)}`. " +
+            "If this is an error, processing for this tag needs to be " +
+            "added in `mid_to_tex.py:format_text`")
 
     return text
 
@@ -147,20 +168,28 @@ def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path
     tex_inputs = env_path_prepend(os.environ.get("TEXINPUTS"), work_dir, ".")
     
     args = [
-        arg.format(OUTPUT_DIRECTORY=intermediate_output_directory, JOB_NAME=output_stem, TEX_FILE=main_tex_file)
+        arg.format(
+            MODE="nonstopmode" if logger.isEnabledFor(logging.DEBUG) else "batchmode",
+            OUTPUT_DIRECTORY=intermediate_output_directory,
+            JOB_NAME=output_stem,
+            TEX_FILE=main_tex_file,
+        )
         for arg in shlex.split(xelatex_command_line)
     ]
+
+    logger.debug(' '.join(args))
+
     env = os.environ.copy()
     env["TEXINPUTS"] = tex_inputs
-    print("==Starting xelatex==")
+    logger.info("==Starting xelatex==")
     subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
-    print("==Finished xelatex==")
+    logger.info("==Finished xelatex==")
     intermediate_output_file = intermediate_output_directory / (output_stem + ".pdf")
     final_output_file = output_dir / (output_stem + ".pdf")
     if intermediate_output_file.exists():
         shutil.move(intermediate_output_file, final_output_file)
     else:
-        print("Error: No PDF file generated")
+        logger.error("No PDF file generated")
         
 def generate_images(config: ImagesConfig, work_dir: Path, bleed: bool):
     for image_info in config.all_images_iter():
@@ -169,21 +198,21 @@ def generate_images(config: ImagesConfig, work_dir: Path, bleed: bool):
         os.makedirs(output_path.parent, exist_ok=True)
         
         img = cv2.imread(str(input_path)) 
-        print(np.shape(img))
+        logger.debug(np.shape(img))
         
         l, r, t, b = image_info.padding_lrtb(bleed)
-        print((l, r, t, b))
+        logger.debug((l, r, t, b))
         mask = np.ones((img.shape[0], img.shape[1]), dtype=np.uint8) * 255
         mask = crop_and_pad_mat(mask, [(t, b), (l, r)])
         mask = 255 - mask
         img = crop_and_pad_mat(img, [(t, b), (l, r)])
-        print(img.dtype)
-        print(img.shape)
+        logger.debug(img.dtype)
+        logger.debug(img.shape)
 
         cv2.setRNGSeed(42) # For consistent generation between runs
         img = cv2.inpaint(img, mask, 2, cv2.INPAINT_TELEA)
         
-        print(output_path)
+        logger.debug(output_path)
         cv2.imwrite(str(output_path), img)
     
 def crop_and_pad_mat(mat, pad_crop_values):
@@ -207,22 +236,28 @@ def cv2_to_pil(img, from_space="BGR", to_space="RGB"):
     converted = cv2.cvtColor(img, flag)
     return Image.fromarray(converted, to_space)
 
-def main():    
+def main():
     parser = argparse.ArgumentParser(
                         prog='md_to_tex',
-                        description='Converts the input .md files to .tex files',
-                        formatter_class=ColorHelpFormatter)
+                        description='Converts the input .md files to .tex files.',
+                        formatter_class=ColorHelpFormatter,
+                        add_help=False)
     
     parser.add_argument("input_dir")
     parser.add_argument("output_dir")
-    parser.add_argument('--bleed', '-b', action='store_true', help="Add bleed to the output file, for printing")
-    parser.add_argument('--skip-images', '-s', action='store_true', help="Skip generating the images. Will use previously generated images. Speeds up execution")
-    parser.add_argument('--dont-print-images', '-d', action='store_true', help="Don't print the images to the PDF. Greatly speeds up execution.")
-    parser.add_argument('--xelatex-command-line', '-x',
+    parser.add_argument("-h", "--help", action="help", default=argparse.SUPPRESS,
+                        help="Show this help message and exit.")
+    parser.add_argument("-b", "--bleed", action="store_true", help="Add bleed to the output file, for printing.")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Be verbose.")
+    parser.add_argument("-s", "--skip-images", action="store_true", help="Skip generating the images. Will use previously generated images. Speeds up execution.")
+    parser.add_argument("-d", "--dont-print-images", action="store_true", help="Don't print the images to the PDF. Greatly speeds up execution.")
+    parser.add_argument("-x", "--xelatex-command-line",
                         default = xelatex_command_default,
-                        help=f"Allow overriding the command used to call xelatex.\n This will be formatted with str.format, with keyword arguments OUTPUT_DIRECTORY, JOB_NAME, and TEX_FILE. The default is `{colors.faint(xelatex_default_windows)}` on Windows, and `{colors.faint(xelatex_default_linux)}` on Linux and other systems")
+                        help=f"Allow overriding the command used to call xelatex.\n This will be formatted with `{colors.faint('str.format')}`, with keyword arguments MODE (optional to preserve verbosity), OUTPUT_DIRECTORY, JOB_NAME, and TEX_FILE. The default is `{colors.faint(xelatex_default_windows)}` on Windows, and `{colors.faint(xelatex_default_linux)}` on Linux and other systems.")
     
     args = parser.parse_args()
+
+    if args.verbose: logger.setLevel(logging.DEBUG)
 
     input_dir = Path(args.input_dir).absolute()
     
@@ -242,7 +277,7 @@ def main():
     if not args.skip_images:
         generate_images(images_config, work_dir, args.bleed)
         time.sleep(5)
-    
+
     convert_book(book_config, images_config, output_dir, work_dir, args.bleed, args.dont_print_images, args.xelatex_command_line)
 
 if __name__ == '__main__':
