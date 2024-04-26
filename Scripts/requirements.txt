@@ -4,3 +4,4 @@ numpy
 opencv-python
 argparse-color-formatter
 ansicolors
+colorlog
