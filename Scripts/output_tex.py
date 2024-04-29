@@ -1,24 +1,28 @@
 import argparse
 import itertools
+import logging
 import os
-import re
 import shlex
 import shutil
 import subprocess
 import sys
 import time
-import logging
-import colorlog
 from pathlib import Path, PurePosixPath
 
+import colorlog
 import colors
 import cv2
 import numpy as np
+import regex
 from argparse_color_formatter import ColorHelpFormatter
 from Lib.config import (Book, Chapter, ImageInfo, ImagesConfig, Part,
                         parse_book_config, parse_image_config)
 from Lib.project_dirs import common_dir
 from PIL import Image
+from pylatexenc.latexencode import (RULE_DICT, RULE_REGEX,
+                                    UnicodeToLatexConversionRule,
+                                    UnicodeToLatexEncoder,
+                                    get_builtin_uni2latex_dict)
 
 formatter = colorlog.ColoredFormatter(
     '%(log_color)s%(levelname)s: %(message)s',
@@ -57,28 +61,57 @@ def env_path_prepend(s_old: str, *args) -> str:
         l.append(s_old)
     return os.pathsep.join(str(x) for x in l)
 
-def format_text(text: str) -> str:  
-    text = text.replace(r"<i>", r"\textit{")
-    text = text.replace(r"</i>", r"}")
-    text = text.replace(r"<em>", r"\textit{")
-    text = text.replace(r"</em>", r"}")
 
-    text = text.replace(r"<u>", r"\underline{")
-    text = text.replace(r"</u>", r"}")
 
-    text = text.replace(r"<b>", r"\textbf{")
-    text = text.replace(r"</b>", r"}")    
-    text = text.replace(r"<strong>", r"\textbf{")
-    text = text.replace(r"</strong>", r"}") 
-    
-    text = re.sub(r"<br( )?(/)?>", r"\\", text)
+def get_latex_converter() -> UnicodeToLatexEncoder:
+    if not hasattr(get_latex_converter, "converter"):
+        # Check whether this character is preceded/followed by a word character
+        # (\w), possibly with some HTML tags in between
+        after_wchar = r"(?<=\w(<[^<>]+>)*)"
+        before_wchar = r"(?=(<[^<>]+>)*\w)"
+        
+        regex_replacements = {
+            rf"{after_wchar}((\.\.\.)|(…)){before_wchar}": r"{\\EllipsisSplittable}",
+            rf"{after_wchar}—{before_wchar}": r"{\\EmDashSplittable}",
+
+            r"<i>":   r"\\textit{",
+            r"</i>":  r"}",
+            r"<em>":  r"\\textit{",
+            r"</em>": r"}",
+
+            r"<u>":  r"\\underline{",
+            r"</u>": r"}",
+
+            r"<b>":       r"\\textbf{",
+            r"</b>":      r"}",
+            r"<strong>":  r"\\textbf{",
+            r"</strong>": r"}",
+            
+            r"<br( )?(/)?>": r"\\",
+        }
+        
+        conversion_rules = [
+            UnicodeToLatexConversionRule(RULE_REGEX, 
+                [(regex.compile(k), v) for k, v in regex_replacements.items()],
+                replacement_latex_protection='none'),
+            'defaults'
+        ]
+        get_latex_converter.converter = UnicodeToLatexEncoder(
+            conversion_rules=conversion_rules, 
+            replacement_latex_protection = 'braces-all')
+
+    return get_latex_converter.converter
+
+def format_text(text: str) -> str: 
+    converted_text = get_latex_converter().unicode_to_latex(text)
 
     def transform_paragraph(p: str) -> str:
         p = p.strip()
         if p == "* * *":
             p = r"\icon"
         return p
-    split_text = re.split(r"\r?\n\s*\n", text)
+
+    split_text = regex.split(r"\r?\n\s*\n", converted_text)
     transformed_text = (transform_paragraph(p) for p in split_text)
     filtered_text = list(filter(lambda x: x and not x.isspace(), transformed_text))
     for i in range(len(filtered_text)):
@@ -91,7 +124,7 @@ def format_text(text: str) -> str:
 
     text = text.replace("\n\n" + r"\\", "\n" + r"\\")
     
-    m = re.search(r"<[^\r\n<>]+>", text)
+    m = regex.search(r"<[^\r\n<>]+>", text)
     if m is not None:
         logger.warning(f"Possible unprocessed HTML tag `{m.group(0)}`. " +
             "If this is an error, processing for this tag needs to be " +

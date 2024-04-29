@@ -57,22 +57,15 @@
 
 \linespread{1.2}
 
-% ======= Convert " to LaTeX quotes =======
-\usepackage [english]{babel}
-\usepackage [autostyle, english = american]{csquotes}
-\MakeOuterQuote{"}
 
 % ======= Utilities =======
+\usepackage[english]{babel}
+\usepackage{microtype}
 \usepackage{tikz}
 
 \newcommand{\textof}[2][sb]{{\fontseries{#1}\selectfont #2}}
 \newcommand*\newleftpage{\newpage\ifodd\value{page}\hbox{}\thispagestyle{empty}\newpage\fi}
 \newcommand*\newrightpage{\newpage\ifodd\value{page}\else\hbox{}\thispagestyle{empty}\newpage\fi}
-
-\hfuzz=2000pt
-\vfuzz=2000pt
-\hbadness=\maxdimen
-\vbadness=\maxdimen
 
 % ======= Header =======
 \usepackage{fancyhdr}
@@ -96,7 +89,15 @@
   \fi
 }
 
+% ======= Line splitting =======
+
+% The \penalty means that we can break a line here, with the given penalty for doing so. 
+% Note that the default penalty for inserting hyphens to break is 50.
+\newcommand{\EmDashSplittable}{\textemdash \penalty25}
+\newcommand{\EllipsisSplittable}{\ldots \penalty15}
+
 % ======= Content Commands =======
+
 \newcommand{\icon}{
   % The icon takes up 3 lines
   \begin{center}
