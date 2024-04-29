@@ -81,6 +81,9 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
 
             r"<u>":  r"\\underline{",
             r"</u>": r"}",
+            
+            r"<tt>":  r"\\texttt{",
+            r"</tt>": r"}",            
 
             r"<b>":       r"\\textbf{",
             r"</b>":      r"}",

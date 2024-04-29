@@ -4,4 +4,11 @@
 /Test*/
 
 WorkDir/
+
 *.pyc
+
+*.aux
+*.pdf
+*.synctex.*
+*.page-numbers.txt
+*.log
