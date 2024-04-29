@@ -1,0 +1,27 @@
+insert:
+  insert1.jpg:
+    image_type: single
+  insert2.jpg:
+    image_type: double
+  insert3.jpg:
+    image_type: double
+  insert4.jpg:
+    image_type: double
+  insert5.jpg:
+    image_type: single
+  titlepage.jpg:
+    image_type: single
+  toc.jpg:
+    image_type: double
+
+chapter:
+  1.jpg:
+    image_type: double
+  2.jpg:
+    image_type: double
+  3.jpg:
+    image_type: double
+  4.jpg:
+    image_type: double
+  5.jpg:
+    image_type: double
