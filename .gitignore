@@ -1,6 +1,7 @@
-.vscode
-.venv*/
+/.vscode/
+/.venv*/
+/Output*/
+/Test*/
+
 WorkDir/
-Output/
-Test/
 *.pyc
