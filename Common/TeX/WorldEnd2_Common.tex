@@ -4,6 +4,12 @@
 \newwrite\pageNumbersFile
 \immediate\openout\pageNumbersFile=\jobname.page-numbers.txt
 
+% ======= Optional include files based on include dirs =======
+
+% If directory Optional/NoImages is added to TEXINPUTS, this file defines
+% the command \dontPrintImages
+\InputIfFileExists{noimages.tex}{}{}
+
 % ======= Include generated config =======
 \input{config.tex}
 
@@ -62,6 +68,7 @@
 \usepackage[english]{babel}
 \usepackage{microtype}
 \usepackage{tikz}
+\usepackage{xstring}
 
 \newcommand{\textof}[2][sb]{{\fontseries{#1}\selectfont #2}}
 \newcommand*\newleftpage{\newpage\ifodd\value{page}\hbox{}\thispagestyle{empty}\newpage\fi}
@@ -145,7 +152,13 @@
     \end{tikzpicture}
   }
 \else
-  \newcommand{\insertTikzPicture}[2]{\phantom{1}}
+\newcommand{\insertTikzPicture}[2]{
+  \begin{tikzpicture}[remember picture,overlay,every node/.style={inner sep=0,outer sep=0}]
+    \node[anchor=#1, yshift=0pt,xshift=0pt]%
+        at (current page.#1)
+        {\phantom{\includegraphics[height=\paperheight]{#2}}};
+  \end{tikzpicture}
+}
 \fi
 
 \newcommand{\insertSingleImage}[1]{

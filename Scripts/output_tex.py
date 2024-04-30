@@ -191,7 +191,7 @@ def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path
     if bleed:
         config_lines.append(r"\newcommand{\bleedSize}{0.125in}")
     if dont_print_images:
-        config_lines.append(r"\newcommand{\dontPrintImages}{}")
+        config_lines.append(r"\providecommand{\dontPrintImages}{}")
     
     config_text = "\n".join(config_lines)
     with open(work_dir / "config.tex", "w") as config_file:
@@ -202,7 +202,8 @@ def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path
     output_stem = f"WorldEnd2 v{book_config.volume:02}"
     main_tex_file = common_dir() / "TeX" / "WorldEnd2_Common.tex"
     tex_inputs = env_path_prepend(os.environ.get("TEXINPUTS"), work_dir, ".")
-    
+    tex_inputs_no_images = env_path_prepend(tex_inputs, common_dir() / "TeX" / "Optional" / "NoImages")
+
     args = [
         arg.format(
             MODE="nonstopmode" if logger.isEnabledFor(logging.DEBUG) else "batchmode",
@@ -216,8 +217,18 @@ def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path
     logger.debug(' '.join(args))
 
     env = os.environ.copy()
+    
+    # We do two passes for two reasons: 1) It resolves an issue with images not
+    # being centered correctly the first time we compile, and 2) In the future,
+    # we're going to implement auto-generation of the table of contents with
+    # correct page numbers, which requires a first pass to actually determine
+    # the page numbers. 
+    # The first pass doesn't take very long since we don't print the images.
+    logger.info("==Starting xelatex (first pass)==")
+    env["TEXINPUTS"] = tex_inputs_no_images
+    subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
+    logger.info("==Starting xelatex (final pass)==")
     env["TEXINPUTS"] = tex_inputs
-    logger.info("==Starting xelatex==")
     subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
     logger.info("==Finished xelatex==")
     intermediate_output_file = intermediate_output_directory / (output_stem + ".pdf")
@@ -226,7 +237,7 @@ def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path
         shutil.move(intermediate_output_file, final_output_file)
     else:
         logger.error("No PDF file generated")
-        
+
 def generate_images(config: ImagesConfig, work_dir: Path, bleed: bool):
     for image_info in config.all_images_iter():
         input_path = image_info.absolute_image_path()
@@ -312,7 +323,6 @@ def main():
     images_config = parse_image_config(book_config.directory / "Images")
     if not args.skip_images:
         generate_images(images_config, work_dir, args.bleed)
-        time.sleep(5)
 
     convert_book(book_config, images_config, output_dir, work_dir, args.bleed, args.dont_print_images, args.xelatex_command_line)
 
