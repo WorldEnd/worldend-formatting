@@ -79,7 +79,7 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
             r"<em>":  r"\\textit{",
             r"</em>": r"}",
 
-            r"<u>":  r"\\underline{",
+            r"<u>":  r"\\ul{",
             r"</u>": r"}",
             
             r"<tt>":  r"\\texttt{",
@@ -204,6 +204,9 @@ def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path
     tex_inputs = env_path_prepend(os.environ.get("TEXINPUTS"), work_dir, ".")
     tex_inputs_no_images = env_path_prepend(tex_inputs, common_dir() / "TeX" / "Optional" / "NoImages")
 
+    page_numbers_file = work_dir / "CompilationDir" / f"{output_stem}.page-numbers.txt"
+    page_numbers = get_page_numbers(page_numbers_file)
+
     args = [
         arg.format(
             MODE="nonstopmode" if logger.isEnabledFor(logging.DEBUG) else "batchmode",
@@ -237,6 +240,15 @@ def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path
         shutil.move(intermediate_output_file, final_output_file)
     else:
         logger.error("No PDF file generated")
+
+def get_page_numbers(file_path):
+    page_numbers = []
+    with open(file_path, 'r') as file:
+        for line in file:
+            match = regex.match(r'ChapterPageNumber:\s*(\d+)', line)
+            if match:
+                page_numbers.append(int(match.group(1)))
+    return page_numbers
 
 def generate_images(config: ImagesConfig, work_dir: Path, bleed: bool):
     for image_info in config.all_images_iter():
