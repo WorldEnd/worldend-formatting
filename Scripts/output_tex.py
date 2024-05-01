@@ -204,8 +204,7 @@ def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path
     tex_inputs = env_path_prepend(os.environ.get("TEXINPUTS"), work_dir, ".")
     tex_inputs_no_images = env_path_prepend(tex_inputs, common_dir() / "TeX" / "Optional" / "NoImages")
 
-    page_numbers_file = work_dir / "CompilationDir" / f"{output_stem}.page-numbers.txt"
-    page_numbers = get_page_numbers(page_numbers_file)
+    page_numbers_file = intermediate_output_directory / f"{output_stem}.page-numbers.txt"
 
     args = [
         arg.format(
@@ -230,6 +229,9 @@ def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path
     logger.info("==Starting xelatex (first pass)==")
     env["TEXINPUTS"] = tex_inputs_no_images
     subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
+    
+    page_numbers = get_page_numbers(page_numbers_file)
+
     logger.info("==Starting xelatex (final pass)==")
     env["TEXINPUTS"] = tex_inputs
     subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
