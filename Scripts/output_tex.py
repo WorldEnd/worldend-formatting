@@ -248,6 +248,9 @@ def get_page_numbers(file_path):
             match = regex.match(r'ChapterPageNumber:\s*(\d+)', line)
             if match:
                 page_numbers.append(int(match.group(1)))
+            else:
+                # Basic error handling as a sanity check
+                raise ValueError(f"Error: Invalid line in page-numbers file: `{line}`")
     return page_numbers
 
 def generate_images(config: ImagesConfig, work_dir: Path, bleed: bool):
