@@ -1,3 +1,4 @@
+from Lib.project_dirs import common_dir
 from PIL import Image, ImageDraw, ImageFont
 
 # TEMPORARY
@@ -9,7 +10,7 @@ padded_numbers = [str(num).zfill(3) for num in numbers]
 image = Image.open("toc.jpg")
 
 draw = ImageDraw.Draw(image)
-font = ImageFont.truetype("HomepageBaukasten-Book.ttf", size=42)
+font = ImageFont.truetype(common_dir() / "Fonts" / "HomepageBaukasten-Book.ttf", size=42)
 
 text_color = (255, 0, 0)  # Normally (0, 0, 0)
 
