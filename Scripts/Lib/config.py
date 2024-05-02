@@ -149,6 +149,8 @@ class ImagesConfig(DebugPrintable):
                 image = SingleImage()
             case "double":
                 image = DoubleImage()
+            case "toc":
+                image = TOCImage()
             case _:
                 raise ValueError(f"Unexpected image type `{node['image_type']}`")
         image.parent = self
@@ -294,6 +296,9 @@ class DoubleImage(ImageInfo):
     def canvas_size_px(self, bleed: bool) -> tuple[int, int]:
         return _canvas_size_px_helper(bleed, True, self.px_per_in, self.width_px, 
                                       self.height_px, self.overlap_px)
+
+class TOCImage(DoubleImage):
+    pass
 
 def _canvas_size_px_helper(bleed: bool, is_two_page: bool, px_per_in: float, width_px: int, height_px: int, overlap_px: int = 0) -> tuple[int, int]:
     bleed_in = BLEED_IN if bleed else 0
