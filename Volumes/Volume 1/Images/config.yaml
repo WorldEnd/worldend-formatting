@@ -12,7 +12,7 @@ insert:
   titlepage.jpg:
     image_type: single
   toc.jpg:
-    image_type: double
+    image_type: toc
 
 chapter:
   1.jpg:

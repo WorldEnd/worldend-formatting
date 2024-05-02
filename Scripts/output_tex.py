@@ -15,10 +15,10 @@ import cv2
 import numpy as np
 import regex
 from argparse_color_formatter import ColorHelpFormatter
-from Lib.config import (Book, Chapter, ImageInfo, ImagesConfig, Part,
+from Lib.config import (Book, Chapter, ImageInfo, ImagesConfig, Part, TOCImage,
                         parse_book_config, parse_image_config)
 from Lib.project_dirs import common_dir
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from pylatexenc.latexencode import (RULE_DICT, RULE_REGEX,
                                     UnicodeToLatexConversionRule,
                                     UnicodeToLatexEncoder,
@@ -165,14 +165,14 @@ def convert_chapter(chapter: Chapter, work_dir: Path, content_lines: list[str]):
 
 def image_latex_command(img_info: ImageInfo) -> str:
         image_path_string = str(PurePosixPath(img_info.relative_image_path().with_suffix(".png")))
-        if (img_info.image_type == "double"):
+        if (img_info.image_type == "double" or img_info.image_type == "toc"):
             return rf"\insertDoubleImage{in_curlies(image_path_string)}"
         elif (img_info.image_type == "single"):
             return rf"\insertSingleImage{in_curlies(image_path_string)}"
         else:
             raise AssertionError(img_info.image_type)
 
-def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path, work_dir: Path, bleed = False, dont_print_images = False, xelatex_command_line: str = xelatex_command_default):   
+def convert_book_1(book_config: Book, image_config: ImagesConfig, output_dir: Path, work_dir: Path, bleed=False, dont_print_images=False, xelatex_command_line: str = xelatex_command_default):
     content_lines = []
     for img_info in image_config.insert_images.values():
         content_lines.append(image_latex_command(img_info))
@@ -185,18 +185,18 @@ def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path
     content_text = "\n\n".join(content_lines)
     with open(work_dir / "content.tex", "w") as content_file:
         content_file.write(content_text)
-    
+
     config_lines = []
     config_lines.append(r"\newcommand{\volumeNumberHeaderText}{Vol." + str(book_config.volume) + "}")
     if bleed:
         config_lines.append(r"\newcommand{\bleedSize}{0.125in}")
     if dont_print_images:
         config_lines.append(r"\providecommand{\dontPrintImages}{}")
-    
+
     config_text = "\n".join(config_lines)
     with open(work_dir / "config.tex", "w") as config_file:
         config_file.write(config_text)
-    
+
     intermediate_output_directory = work_dir / "CompilationDir"
     os.makedirs(intermediate_output_directory, exist_ok=True)
     output_stem = f"WorldEnd2 v{book_config.volume:02}"
@@ -219,19 +219,22 @@ def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path
     logger.debug(' '.join(args))
 
     env = os.environ.copy()
-    
+
     # We do two passes for two reasons: 1) It resolves an issue with images not
     # being centered correctly the first time we compile, and 2) In the future,
     # we're going to implement auto-generation of the table of contents with
     # correct page numbers, which requires a first pass to actually determine
-    # the page numbers. 
+    # the page numbers.
     # The first pass doesn't take very long since we don't print the images.
     logger.info("==Starting xelatex (first pass)==")
     env["TEXINPUTS"] = tex_inputs_no_images
     subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
-    
+
     page_numbers = get_page_numbers(page_numbers_file)
 
+    return page_numbers, intermediate_output_directory, output_stem, main_tex_file, tex_inputs, args, env
+
+def convert_book_2(intermediate_output_directory: Path, output_stem: str, main_tex_file: Path, tex_inputs: str, args: list[str], env: dict[str, str], output_dir: Path):
     logger.info("==Starting xelatex (final pass)==")
     env["TEXINPUTS"] = tex_inputs
     subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
@@ -243,7 +246,7 @@ def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path
     else:
         logger.error("No PDF file generated")
 
-def get_page_numbers(file_path):
+def get_page_numbers(file_path: Path):
     page_numbers = []
     with open(file_path, 'r') as file:
         for line in file:
@@ -255,11 +258,52 @@ def get_page_numbers(file_path):
                 raise ValueError(f"Error: Invalid line in page-numbers file: `{line}`")
     return page_numbers
 
-def generate_images(config: ImagesConfig, work_dir: Path, bleed: bool):
+def draw_page_numbers(page_numbers: list[int], toc_path: Path, output_path: Path):
+    padded_numbers = [str(num).zfill(3) for num in page_numbers]
+
+    image = Image.open(toc_path)
+
+    draw = ImageDraw.Draw(image)
+    font = ImageFont.truetype(
+        common_dir() / "Fonts" / "HomepageBaukasten-Book.ttf", size=42
+    )
+
+    text_color = (0, 0, 0)
+
+    offshift_x = 1301
+    offshift_y = 246
+
+    position_x = 0
+    position_y = 0
+
+    for number in padded_numbers:
+        text = "P . " + number
+
+        text_position = (
+            59.52 + offshift_x * position_x,
+            521.82 + offshift_y * position_y,
+        )
+
+        position_y += 1
+        if position_y == 3:
+            position_y = -1
+            position_x = 1
+
+        draw.text(text_position, text, fill=text_color, font=font)
+
+    image.save(output_path)
+
+    image.close()
+
+def generate_images(config: ImagesConfig, work_dir: Path, page_numbers: list[int], bleed: bool):
     for image_info in config.all_images_iter():
         input_path = image_info.absolute_image_path()
         output_path = (work_dir / image_info.relative_image_path()).with_suffix(".png")
         os.makedirs(output_path.parent, exist_ok=True)
+
+        if isinstance(image_info, TOCImage):
+            draw_page_numbers(page_numbers, input_path, output_path)
+            input_path = output_path
         
         img = cv2.imread(str(input_path)) 
         logger.debug(np.shape(img))
@@ -338,10 +382,13 @@ def main():
     work_dir = work_dir.resolve()
     
     images_config = parse_image_config(book_config.directory / "Images")
-    if not args.skip_images:
-        generate_images(images_config, work_dir, args.bleed)
 
-    convert_book(book_config, images_config, output_dir, work_dir, args.bleed, args.dont_print_images, args.xelatex_command_line)
+    result = convert_book_1(book_config, images_config, output_dir, work_dir, args.bleed, args.dont_print_images, args.xelatex_command_line)
+
+    if not args.skip_images:
+        generate_images(images_config, work_dir, result[0], args.bleed)
+
+    convert_book_2(*result[1:], output_dir)
 
 if __name__ == '__main__':
     main()
