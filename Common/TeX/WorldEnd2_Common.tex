@@ -21,17 +21,19 @@
 \usepackage[
   paperwidth=\dimexpr5.5in + \bleedSize + \bleedSize\relax,
   paperheight=\dimexpr8.25in + \bleedSize + \bleedSize\relax,
-  inner=\dimexpr0.7in + \bleedSize\relax,
+  inner=\dimexpr0.6in + \bleedSize\relax,
   outer=\dimexpr0.45in + \bleedSize\relax,
-  bottom=\dimexpr0.75in + \bleedSize\relax,
-  top=0in, % total is 0.875 in for top
+  bottom=\dimexpr0.5in + \bleedSize\relax,
+  top=0in, % total is 0.95 in for top
   headsep=0.5in,
-  headheight=\dimexpr0.375in + \bleedSize\relax,
+  headheight=\dimexpr0.45in + \bleedSize\relax,
   includehead
 ]{geometry}
 
-\setlength\parindent{0.2in}
+\setlength{\parindent}{0.2in}
 \setlength{\parskip}{0pt}
+\linespread{1.25}
+
 
 % ======= Fonts =======
 \usepackage[no-math]{fontspec}
@@ -60,8 +62,6 @@
     LetterSpace = 0.0
 ]
 {AGaramondPro}
-
-\linespread{1.2}
 
 
 % ======= Utilities =======
@@ -112,7 +112,7 @@
   \begin{center}
   \vphantom{1}
   
-  \vphantom{2}\raisebox{-0.09in}[0em][0em]{\includegraphics[height=0.24in]{../Images/ornament.png}}\vphantom{2}
+  \vphantom{2}\raisebox{-0.07in}[0em][0em]{\includegraphics[height=0.22in]{../Images/ornament.png}}\vphantom{2}
   
   \vphantom{3}
   \end{center}
