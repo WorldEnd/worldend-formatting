@@ -1,6 +1,6 @@
 import sys
 
-SUBPART_NUMBER = 1
+SUBPART_NUMBER = 0
 
 
 def main():
@@ -103,8 +103,8 @@ def print_text(book):
     elif book[0] == "breakbody":
         return "<br/>\n\n" + book[1]
     elif book[0] == "subpart":
-        return "# " + str(SUBPART_NUMBER)
         SUBPART_NUMBER += 1
+        return "# " + str(SUBPART_NUMBER)
     else:
         raise ValueError(f"Unknown type: {book[0]}")
 
