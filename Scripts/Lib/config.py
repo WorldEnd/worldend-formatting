@@ -24,6 +24,7 @@ class Book(DebugPrintable):
     chapters: "list[Chapter]"
     directory: Path
     volume: int
+    isbn: str
     
     # @property
     # def parts(self):
@@ -45,6 +46,7 @@ class Book(DebugPrintable):
 
     def parse_yaml(self, node: dict):
         self.volume = node["volume_number"]
+        self.isbn = node["isbn"]
         self.chapters = []
         for i, c in enumerate(node["chapters"], start=1):
             chapter = Chapter()
