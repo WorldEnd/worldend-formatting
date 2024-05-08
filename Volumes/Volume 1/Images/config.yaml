@@ -1,4 +1,6 @@
 insert:
+  cover.jpg:
+    image_type: cover
   insert1.jpg:
     image_type: single
   insert2.jpg:
@@ -10,7 +12,7 @@ insert:
   insert5.jpg:
     image_type: single
   titlepage.jpg:
-    image_type: single
+    image_type: titlepage
   toc.jpg:
     image_type: toc
 

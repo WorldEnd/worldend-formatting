@@ -167,8 +167,10 @@ def image_latex_command(img_info: ImageInfo) -> str:
         image_path_string = str(PurePosixPath(img_info.relative_image_path().with_suffix(".png")))
         if (img_info.image_type == "double" or img_info.image_type == "toc"):
             return rf"\insertDoubleImage{in_curlies(image_path_string)}"
-        elif (img_info.image_type == "single"):
+        elif (img_info.image_type == "single" or img_info.image_type == "titlepage"):
             return rf"\insertSingleImage{in_curlies(image_path_string)}"
+        elif img_info.image_type == "cover":
+            return ""
         else:
             raise AssertionError(img_info.image_type)
 

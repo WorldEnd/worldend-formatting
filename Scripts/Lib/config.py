@@ -149,6 +149,10 @@ class ImagesConfig(DebugPrintable):
                 image = SingleImage()
             case "double":
                 image = DoubleImage()
+            case "cover":
+                image = CoverImage()
+            case "titlepage":
+                image = TitlePageImage()
             case "toc":
                 image = TOCImage()
             case _:
@@ -158,7 +162,7 @@ class ImagesConfig(DebugPrintable):
         image._subdir = subdirectory
         image.parse_yaml(node)
         return image
-    
+
     def all_images_iter(self) -> Iterator["ImageInfo"]:
         return itertools.chain(self.insert_images.values(), self.chapter_images.values())
 
@@ -281,6 +285,12 @@ class SingleImage(ImageInfo):
     def canvas_size_px(self, bleed: bool) -> tuple[int, int]:
         return _canvas_size_px_helper(bleed, False, self.px_per_in,
                                       self.width_px, self.height_px)
+
+class TitlePageImage(SingleImage):
+    pass
+
+class CoverImage(SingleImage):
+    pass
 
 class DoubleImage(ImageInfo):
     overlap_px: int
