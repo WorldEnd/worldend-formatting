@@ -72,6 +72,7 @@ TAG_MAPPING = {
     '<p class="h1_co1">': "subpart",
     '<p class="tx">': "body",
     '<p class="tx1">': "body",
+    '<p class="tx10">': "sectionbreakbody",
     '<p class="cotx1a">': "body",
     '<p class="space-break">': "breakbody",
     '<div class="ext_ch">': "ornament1",
@@ -102,6 +103,8 @@ def print_text(book):
         return "* * *"
     elif book[0] == "breakbody":
         return "<br/>\n\n" + book[1]
+    elif book[0] == "sectionbreakbody":
+        return '<span class="v-centered-page">' + book[1] + "</span>"
     elif book[0] == "subpart":
         SUBPART_NUMBER += 1
         return "# " + str(SUBPART_NUMBER)
