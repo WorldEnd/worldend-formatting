@@ -8,6 +8,8 @@ import subprocess
 import sys
 import time
 from pathlib import Path, PurePosixPath
+# We use regex instead of re, this import is just for type hinting
+from re import Match
 
 import colorlog
 import colors
@@ -61,18 +63,37 @@ def env_path_prepend(s_old: str, *args) -> str:
         l.append(s_old)
     return os.pathsep.join(str(x) for x in l)
 
-
-
 def get_latex_converter() -> UnicodeToLatexEncoder:
     if not hasattr(get_latex_converter, "converter"):
         # Check whether this character is preceded/followed by a word character
         # (\w), possibly with some HTML tags in between
         after_wchar = r"(?<=\w(<[^<>]+>)*)"
         before_wchar = r"(?=(<[^<>]+>)*\w)"
+
+        # HTML class name
+        classname = r"(?:-?[_a-zA-Z][_a-zA-Z0-9-]*)"
+        
+        # Command to run at the beginning of the span, and command to run
+        # at the end. Use \bgroup and \egroup instead of { and } if you need to
+        # enclose something between the start and end command
+        def span_replacement(start_command, end_command = ""):
+            return (r"\\begin{SpanEnv}\\renewcommand{\\SpanEnvClose}{" 
+                    + end_command + "}" + start_command)
         
         regex_replacements = {
             rf"{after_wchar}((\.\.\.)|(…)){before_wchar}": r"{\\EllipsisSplittable}",
             rf"{after_wchar}—{before_wchar}": r"{\\EmDashSplittable}",
+            
+            r"((\.\.\.)|(…))": r"{\\Ellipsis}",
+            r"—": r"{\\EmDash}",
+            
+            rf"</span>": r"\\end{SpanEnv}",
+
+            rf'<span class="v-centered-page">': span_replacement(
+                r"\\newpage\\hspace{0pt}\\vfill ", 
+                r" \\vfill\\hspace{0pt}\\newpage"),
+            
+            rf'<span class="page-break"[ ]?/>': r"\\newpage",
 
             r"<i>":   r"\\textit{",
             r"</i>":  r"}",
@@ -90,7 +111,7 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
             r"<strong>":  r"\\textbf{",
             r"</strong>": r"}",
             
-            r"<br( )?(/)?>": r"\\",
+            r"<br(?:[ ]?/)?>": r"\\",
         }
         
         conversion_rules = [
@@ -279,7 +300,7 @@ def draw_page_numbers(page_numbers: list[int], toc_path: Path, output_path: Path
     position_y = 0
 
     for number in padded_numbers:
-        text = "P . " + number
+        text = "P\u200A.\u200A" + number
 
         text_position = (
             59.52 + offshift_x * position_x,

@@ -76,6 +76,10 @@
 \newcommand*\newleftpage{\newpage\ifodd\value{page}\hbox{}\thispagestyle{empty}\newpage\fi}
 \newcommand*\newrightpage{\newpage\ifodd\value{page}\else\hbox{}\thispagestyle{empty}\newpage\fi}
 
+\newenvironment*{SpanEnv}
+  { \providecommand{\SpanEnvClose}{} } % begin command
+  { \SpanEnvClose } % end command
+
 % ======= Header =======
 \usepackage{fancyhdr}
 \setlength{\footskip}{5pt}
@@ -100,10 +104,13 @@
 
 % ======= Line splitting =======
 
+\newcommand{\EmDash}{\textemdash}
+\newcommand{\Ellipsis}{\ldots}
+
 % The \penalty means that we can break a line here, with the given penalty for doing so. 
 % Note that the default penalty for inserting hyphens to break is 50.
-\newcommand{\EmDashSplittable}{\textemdash \penalty25}
-\newcommand{\EllipsisSplittable}{\ldots \penalty15}
+\newcommand{\EmDashSplittable}{\EmDash \penalty25}
+\newcommand{\EllipsisSplittable}{\Ellipsis \penalty15}
 
 % ======= Content Commands =======
 
