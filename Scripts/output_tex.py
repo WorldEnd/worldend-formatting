@@ -300,7 +300,7 @@ def draw_page_numbers(page_numbers: list[int], toc_path: Path, output_path: Path
     position_y = 0
 
     for number in padded_numbers:
-        text = "P\u200A.\u200A" + number
+        text = "P . " + number
 
         text_position = (
             59.52 + offshift_x * position_x,
