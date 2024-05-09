@@ -1,0 +1,27 @@
+insert:
+  cover.png:
+    image_type: cover
+  insert1.png:
+    image_type: single
+  insert2.png:
+    image_type: single
+  insert3.png:
+    image_type: double
+  insert4.png:
+    image_type: double
+  titlepage.png:
+    image_type: titlepage
+  toc.png:
+    image_type: toc
+
+chapter:
+  1.png:
+    image_type: double
+  2.png:
+    image_type: double
+  3.png:
+    image_type: double
+  4.png:
+    image_type: double
+  5.png:
+    image_type: double
