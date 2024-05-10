@@ -58,7 +58,7 @@ def replace_sublist(lst, sublist, replacement):
 def strip_tag(line):
     start_index = line.find(">") + 1
     end_index = line.rfind("<")
-    return line[start_index:end_index]
+    return line[start_index:end_index].strip()
 
 
 def grab_tag(string):
