@@ -200,7 +200,7 @@ class EPUBGenerator:
             "<?xml version='1.0' encoding='utf-8'?>\n"
             '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="fr" lang="fr">\n'
             "<head>\n"
-            "<title>WorldEnd: What Do You Do at the End of the World? Are You Busy? Will You Save Us?, Vol. {BOOK_VOLUME}</title>\n"
+            "<title>WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</title>\n"
             '<link rel="stylesheet" href="css/stylesheet.css" type="text/css"/>\n'
             "\n"
             "\n"
@@ -314,7 +314,7 @@ class EPUBGenerator:
             '    <meta name="dtb:maxPageNumber" content="0"/>\n'
             "  </head>\n"
             "  <docTitle>\n"
-            "    <text>WorldEnd: What Do You Do at the End of the World? Are You Busy? Will You Save Us?, Vol. {BOOK_VOLUME}</text>\n"
+            "    <text>WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</text>\n"
             "  </docTitle>\n"
             "  <navMap>\n"
             '    <navPoint id="num_1" playOrder="1">\n'
