@@ -68,7 +68,7 @@ def convert_book(
     logger.info(f"==Output file at {output_file}==")
 
 
-def resize_image(input_file, output_file, scale_height=True):
+def resize_image(input_file: Path, output_file: Path, scale_height=True):
     img = Image.open(input_file)
 
     if img.mode == "RGBA":
@@ -77,15 +77,9 @@ def resize_image(input_file, output_file, scale_height=True):
     width, height = img.size
 
     if scale_height:
-        if height > 1800:
-            ratio = 1800 / height
-        else:
-            ratio = 1
+        ratio = 1800 / height if height > 1800 else 1
     else:
-        if width > 1800:
-            ratio = 1800 / width
-        else:
-            ratio = 1
+        ratio = 1800 / width if width > 1800 else 1
 
     new_width = int(width * ratio)
     new_height = int(height * ratio)
@@ -96,7 +90,7 @@ def resize_image(input_file, output_file, scale_height=True):
     )
 
 
-def convert_zip_to_epub(output_file, intermediate_output_directory):
+def convert_zip_to_epub(output_file: Path, intermediate_output_directory: Path):
     with zipfile.ZipFile(output_file, "w", compression=zipfile.ZIP_STORED) as epub:
         os.chdir(intermediate_output_directory)
 
@@ -119,12 +113,17 @@ def convert_zip_to_epub(output_file, intermediate_output_directory):
         epub.close()
 
 
-def write_file(filepath, content):
+def write_file(filepath: Path, content):
     with open(filepath, "w") as file:
         file.write(content)
 
 
-def convert_md_to_html(generator, book_config, images_config, output_dir):
+def convert_md_to_html(
+    generator: EPUBGenerator,
+    book_config: Book,
+    images_config: ImagesConfig,
+    output_dir: Path,
+):
     combined_chapters = {
         chapter.number: generator.process_chapter(chapter.number)
         for chapter in book_config.chapters
@@ -165,7 +164,7 @@ def convert_md_to_html(generator, book_config, images_config, output_dir):
     )
 
 
-def process_images(images_config, output_dir, isbn):
+def process_images(images_config: ImagesConfig, output_dir: Path, isbn: str):
     insert_image_number = 1
     chapter_image_number = 1
     image_type_mapping = {
