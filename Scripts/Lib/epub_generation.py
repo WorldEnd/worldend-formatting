@@ -9,6 +9,10 @@ from .config import (
 import regex
 from pathlib import Path
 import string
+import uuid
+from datetime import datetime
+
+uuid = str(uuid.uuid4())
 
 
 class EPUBGenerator:
@@ -79,7 +83,7 @@ class EPUBGenerator:
 
         title_subtitle = self.replace_text(
             '<h1 class="chapter-title"><a id="Ref_{BOOK_VOLUME:02}{COUNTER:02}" href="toc.xhtml#Ref_{BOOK_VOLUME:02}{COUNTER:02}a">{CHAPTER_TITLE}</a></h1>\n'
-            '<h2 class="chapter-subtitle"><a href="toc.xhtml#Ref_{BOOK_VOLUME:02}{COUNTER:02}a">-{CHAPTER_SUBTITLE}-</a></h2>',
+            '<h2 class="chapter-subtitle"><a href="toc.xhtml#Ref_{BOOK_VOLUME:02}{COUNTER:02}a1">-{CHAPTER_SUBTITLE}-</a></h2>',
             start=chapter_number,
         )
 
@@ -202,8 +206,6 @@ class EPUBGenerator:
             "<head>\n"
             "<title>WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</title>\n"
             '<link rel="stylesheet" href="css/stylesheet.css" type="text/css"/>\n'
-            "\n"
-            "\n"
             "</head>\n"
             "<body>\n"
             '<nav epub:type="toc">\n'
@@ -243,7 +245,6 @@ class EPUBGenerator:
             '<meta http-equiv="default-style" content="text/html; charset=utf-8"/>\n'
             "<title>WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</title>\n"
             '<link rel="stylesheet" href="css/stylesheet.css" type="text/css"/>\n'
-            "\n"
             "</head>\n"
             "<body>\n"
             '<section class="frontmatter-rw TitlePage-rw exclude-print-rw" id="BookTitlePage1" epub:type="frontmatter titlepage">\n'
@@ -264,7 +265,6 @@ class EPUBGenerator:
             '<meta http-equiv="default-style" content="text/html; charset=utf-8"/>\n'
             "<title>WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</title>\n"
             '<link rel="stylesheet" href="css/stylesheet.css" type="text/css"/>\n'
-            "\n"
             "</head>\n"
             "<body>\n"
             '<section id="insert{INSERT_NUMBER:03}" epub:type="frontmatter titlepage">\n'
@@ -277,12 +277,12 @@ class EPUBGenerator:
         )
 
     def generate_toc_xhtml(self):
-        text = (
+        text = self.replace_text(
             '<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">\n'
             "<head>\n"
+            "<title>WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</title>\n"
             '<meta content="text/html; charset=utf-8" http-equiv="default-style"/>\n'
             '<link rel="stylesheet" href="css/stylesheet.css" type="text/css"/>\n'
-            "\n"
             "</head>\n"
             "<body>\n"
             '<div class="galley-rw">\n'
@@ -295,7 +295,7 @@ class EPUBGenerator:
 
         text += self.replace_text(
             '<p class="toc-chapter1" id="Ref_{BOOK_VOLUME:02}{CHAPTER_NUMBER:02}a"><a href="chapter{CHAPTER_NUMBER:03}.xhtml"><strong>{CHAPTER_TITLE}</strong></a></p>\n'
-            '<p class="toc-chaptera" id="Ref_{BOOK_VOLUME:02}{CHAPTER_NUMBER:02}a"><a href="chapter{CHAPTER_NUMBER:03}.xhtml">-{CHAPTER_SUBTITLE}-</a></p>\n',
+            '<p class="toc-chaptera" id="Ref_{BOOK_VOLUME:02}{CHAPTER_NUMBER:02}a1"><a href="chapter{CHAPTER_NUMBER:03}.xhtml">-{CHAPTER_SUBTITLE}-</a></p>\n',
             self.chapters,
         )
 
@@ -365,10 +365,8 @@ class EPUBGenerator:
             "<?xml version='1.0' encoding='utf-8'?>\n"
             '<html xmlns:epub="http://www.idpf.org/2007/ops" xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">\n'
             "<head>\n"
-            "\n"
             "<title>WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</title>\n"
             '<link rel="stylesheet" type="text/css" href="css/stylesheet.css"/>\n'
-            "\n"
             "</head>\n"
             "<body>\n"
             '<section epub:type="cover">\n'
@@ -390,13 +388,13 @@ class EPUBGenerator:
             '    <dc:creator id="id-1">Akira Kareno</dc:creator>\n'
             '    <dc:creator id="id-2">ue</dc:creator>\n'
             # "    <dc:rights>©2014 Akira Kareno, ue</dc:rights>\n"
-            # "    <dc:identifier>uuid:5204b4b1-7cfd-488c-b575-3bf47ff06bc2</dc:identifier>\n"
-            # '    <dc:identifier id="pub-id">urn:uuid:4b379e48-9df7-455a-b1d3-bc3443562bb1</dc:identifier>\n'
+            "    <dc:identifier>uuid:{UUID}</dc:identifier>\n"
+            '    <dc:identifier id="pub-id">{ISBN}</dc:identifier>\n'
             "    <dc:language>en</dc:language>\n"
             "    <dc:publisher>Orlandri Translation Company</dc:publisher>\n"
             '    <meta refines="#id" property="title-type">main</meta>\n'
             '    <meta refines="#id" property="file-as">WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</meta>\n'
-            # '    <meta property="dcterms:modified">2024-04-02T17:18:23Z</meta>\n'
+            '    <meta property="dcterms:modified">{TIME}</meta>\n'
             '    <meta refines="#id-1" property="role" scheme="marc:relators">aut</meta>\n'
             '    <meta refines="#id-1" property="file-as">Kareno, Akira</meta>\n'
             '    <meta refines="#id-2" property="role" scheme="marc:relators">aut</meta>\n'
@@ -404,6 +402,10 @@ class EPUBGenerator:
             "  </metadata>\n"
             "  <manifest>\n"
             '    <item href="cover.xhtml" id="id_cover_xhtml" media-type="application/xhtml+xml"/>\n',
+            extra_replacements={
+                "UUID": uuid,
+                "TIME": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            },
         )
 
         text += self.replace_text(
