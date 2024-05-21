@@ -1,21 +1,23 @@
 insert:
-  coverins.jpg:
-    image_type: single
-  ins1.jpg:
+  cover.png:
+    image_type: cover
+  insert1.png:
     image_type: double
-  ins2.jpg:
+  insert2.png:
     image_type: double
-  toc.jpg:
-    image_type: double
+  titlepage.png:
+    image_type: titlepage
+  toc.png:
+    image_type: toc
 
 chapter:
-  1.jpg:
+  1.png:
     image_type: double
-  2.jpg:
+  2.png:
     image_type: double
-  3.jpg:
+  3.png:
     image_type: double
-  4.jpg:
+  4.png:
     image_type: double
-  5.jpg:
+  5.png:
     image_type: double
