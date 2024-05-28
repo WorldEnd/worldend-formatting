@@ -1,7 +1,8 @@
 from .config import (
     Chapter,
-    CoverImage,
     ImagesConfig,
+    CoverImage,
+    FillerImage,
     TOCImage,
     TitlePageImage,
 )
@@ -378,7 +379,7 @@ class EPUBGenerator:
 
     def generate_package_opf(self, combined_chapters):
         is_insert = lambda insert: not isinstance(
-            insert, (CoverImage, TOCImage, TitlePageImage)
+            insert, (CoverImage, FillerImage, TOCImage, TitlePageImage)
         )
 
         text = self.replace_text(

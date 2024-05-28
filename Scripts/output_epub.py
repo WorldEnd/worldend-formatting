@@ -19,6 +19,7 @@ from Lib.config import (
     SingleImage,
     DoubleImage,
     CoverImage,
+    FillerImage,
     TitlePageImage,
     TOCImage,
     parse_book_config,
@@ -147,7 +148,7 @@ def convert_md_to_html(
 
     insert_number = 1
     for insert in images_config.insert_images.values():
-        if not isinstance(insert, (CoverImage, TOCImage, TitlePageImage)):
+        if not isinstance(insert, (CoverImage, FillerImage, TOCImage, TitlePageImage)):
             write_file(
                 output_dir / f"insert{insert_number:03}.xhtml",
                 generator.generate_insert_pages(insert_number),

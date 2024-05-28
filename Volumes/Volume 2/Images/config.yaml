@@ -4,11 +4,11 @@ insert:
   insert1.png:
     image_type: single
   insert2.png:
-    image_type: single
+    image_type: double
   insert3.png:
     image_type: double
   insert4.png:
-    image_type: double
+    image_type: single
   titlepage.png:
     image_type: titlepage
   toc.png:

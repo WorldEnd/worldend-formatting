@@ -1,10 +1,14 @@
 insert:
   cover.png:
     image_type: cover
+  filler1.png:
+    image_type: filler
   insert1.png:
     image_type: double
   insert2.png:
     image_type: double
+  filler2.png:
+    image_type: filler
   titlepage.png:
     image_type: titlepage
   toc.png:
