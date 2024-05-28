@@ -282,7 +282,7 @@ def get_page_numbers(file_path: Path):
     return page_numbers
 
 def draw_page_numbers(page_numbers: list[int], toc_path: Path, output_path: Path):
-    padded_numbers = [str(num).zfill(3) for num in page_numbers]
+    padded_numbers = [str(num - 3).zfill(3) for num in page_numbers]
 
     image = Image.open(toc_path)
 
