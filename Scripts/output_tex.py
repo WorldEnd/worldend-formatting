@@ -60,6 +60,8 @@ def env_path_prepend(s_old: str, *args) -> str:
     l = list(args)
     if s_old and not s_old.isspace():
         l.append(s_old)
+    else:
+        l.append("") # In case TEXINPUTS is unset, retain the last `:`
     return os.pathsep.join(str(x) for x in l)
 
 def get_latex_converter() -> UnicodeToLatexEncoder:
