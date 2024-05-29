@@ -153,6 +153,8 @@ class ImagesConfig(DebugPrintable):
                 image = DoubleImage()
             case "cover":
                 image = CoverImage()
+            case "filler":
+                image = FillerImage()
             case "titlepage":
                 image = TitlePageImage()
             case "toc":
@@ -292,6 +294,9 @@ class TitlePageImage(SingleImage):
     pass
 
 class CoverImage(SingleImage):
+    pass
+
+class FillerImage(SingleImage):
     pass
 
 class DoubleImage(ImageInfo):

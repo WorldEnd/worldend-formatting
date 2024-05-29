@@ -6,7 +6,6 @@ import shlex
 import shutil
 import subprocess
 import sys
-import time
 from pathlib import Path, PurePosixPath
 # We use regex instead of re, this import is just for type hinting
 from re import Match
@@ -188,7 +187,11 @@ def image_latex_command(img_info: ImageInfo) -> str:
         image_path_string = str(PurePosixPath(img_info.relative_image_path().with_suffix(".png")))
         if (img_info.image_type == "double" or img_info.image_type == "toc"):
             return rf"\insertDoubleImage{in_curlies(image_path_string)}"
-        elif (img_info.image_type == "single" or img_info.image_type == "titlepage"):
+        elif (
+            img_info.image_type == "single"
+            or img_info.image_type == "titlepage"
+            or img_info.image_type == "filler"
+        ):
             return rf"\insertSingleImage{in_curlies(image_path_string)}"
         elif img_info.image_type == "cover":
             return ""
