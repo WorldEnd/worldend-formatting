@@ -43,15 +43,20 @@ logger = logging.getLogger(__name__)
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
-xelatex_default_windows = 'xelatex -interaction={MODE} -enable-installer -output-directory={OUTPUT_DIRECTORY} -job-name={JOB_NAME} {TEX_FILE}'
-xelatex_default_linux = 'xelatex -interaction={MODE} -output-directory={OUTPUT_DIRECTORY} -jobname={JOB_NAME} {TEX_FILE}'
+xelatex_default_miktex = 'xelatex -interaction={MODE} -enable-installer -output-directory={OUTPUT_DIRECTORY} -job-name={JOB_NAME} {TEX_FILE}'
+xelatex_default_texlive = 'xelatex -interaction={MODE} -output-directory={OUTPUT_DIRECTORY} -jobname={JOB_NAME} {TEX_FILE}'
 
-if sys.platform.startswith('win32'): # Windows
-    xelatex_command_default = xelatex_default_windows
-elif sys.platform.startswith('linux'): # Linux
-    xelatex_command_default = xelatex_default_linux
-else: # All others, currently the same default as Linux
-    xelatex_command_default = xelatex_default_linux
+try:
+    xelatex_version = subprocess.check_output(["xelatex", "--version"], stderr=subprocess.STDOUT, text=True)
+
+    if "MiKTeX" in xelatex_version:
+        xelatex_command_default = xelatex_default_miktex
+    elif "TeX Live" in xelatex_version:
+        xelatex_command_default = xelatex_default_texlive
+    else: # All others, currently the same default as for Tex Live
+        xelatex_command_default = xelatex_default_texlive
+except subprocess.CalledProcessError as e:
+    print(f"An error occurred while trying to detect the TeX distribution: {e}")
 
 def in_curlies(s):
     return "{" + str(s) + "}"
@@ -387,7 +392,7 @@ def main():
     parser.add_argument("-d", "--dont-print-images", action="store_true", help="Don't print the images to the PDF. Greatly speeds up execution.")
     parser.add_argument("-x", "--xelatex-command-line",
                         default = xelatex_command_default,
-                        help=f"Allow overriding the command used to call xelatex.\n This will be formatted with `{colors.faint('str.format')}`, with keyword arguments MODE (optional to preserve verbosity), OUTPUT_DIRECTORY, JOB_NAME, and TEX_FILE. The default is `{colors.faint(xelatex_default_windows)}` on Windows, and `{colors.faint(xelatex_default_linux)}` on Linux and other systems.")
+                        help=f"Allow overriding the command used to call xelatex.\n This will be formatted with `{colors.faint('str.format')}`, with keyword arguments MODE (optional to preserve verbosity), OUTPUT_DIRECTORY, JOB_NAME, and TEX_FILE. The default is `{colors.faint(xelatex_default_miktex)}` for MiKTeX, and `{colors.faint(xelatex_default_texlive)}` for TeX Live and other TeX distributions.")
     
     args = parser.parse_args()
 
