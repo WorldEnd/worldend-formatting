@@ -46,17 +46,22 @@ logger.setLevel(logging.INFO)
 xelatex_default_miktex = 'xelatex -interaction={MODE} -enable-installer -output-directory={OUTPUT_DIRECTORY} -job-name={JOB_NAME} {TEX_FILE}'
 xelatex_default_texlive = 'xelatex -interaction={MODE} -output-directory={OUTPUT_DIRECTORY} -jobname={JOB_NAME} {TEX_FILE}'
 
-try:
-    xelatex_version = subprocess.check_output(["xelatex", "--version"], stderr=subprocess.STDOUT, text=True)
+def get_xelatex_command():
+    try:
+        xelatex_version = subprocess.check_output(["xelatex", "--version"], stderr=subprocess.STDOUT, text=True)
 
-    if "MiKTeX" in xelatex_version:
-        xelatex_command_default = xelatex_default_miktex
-    elif "TeX Live" in xelatex_version:
-        xelatex_command_default = xelatex_default_texlive
-    else: # All others, currently the same default as for Tex Live
-        xelatex_command_default = xelatex_default_texlive
-except subprocess.CalledProcessError as e:
-    print(f"An error occurred while trying to detect the TeX distribution: {e}")
+        if "MiKTeX" in xelatex_version:
+            logger.debug("MiKTeX xelatex detected")
+            return xelatex_default_miktex
+        elif "TeX Live" in xelatex_version:
+            logger.debug("TeX Live xelatex detected")
+            return xelatex_default_texlive
+        else: # All others, currently the same default as for Tex Live
+            logger.debug("Unknown TeX Distribution - Defaulting to TeX Live")
+            return xelatex_default_texlive
+    except Exception as e:
+        logger.critical(f"An error occurred while trying to detect the TeX distribution: {e}")
+        sys.exit(1)
 
 def in_curlies(s):
     return "{" + str(s) + "}"
@@ -203,7 +208,7 @@ def image_latex_command(img_info: ImageInfo) -> str:
         else:
             raise AssertionError(img_info.image_type)
 
-def convert_book_1(book_config: Book, image_config: ImagesConfig, output_dir: Path, work_dir: Path, bleed=False, dont_print_images=False, xelatex_command_line: str = xelatex_command_default):
+def convert_book_1(book_config: Book, image_config: ImagesConfig, output_dir: Path, work_dir: Path, bleed=False, dont_print_images=False, xelatex_command_line: str = xelatex_default_texlive):
     content_lines = []
     for img_info in image_config.insert_images.values():
         content_lines.append(image_latex_command(img_info))
@@ -391,12 +396,14 @@ def main():
     parser.add_argument("-s", "--skip-images", action="store_true", help="Skip generating the images. Will use previously generated images. Speeds up execution.")
     parser.add_argument("-d", "--dont-print-images", action="store_true", help="Don't print the images to the PDF. Greatly speeds up execution.")
     parser.add_argument("-x", "--xelatex-command-line",
-                        default = xelatex_command_default,
+                        type=str,
                         help=f"Allow overriding the command used to call xelatex.\n This will be formatted with `{colors.faint('str.format')}`, with keyword arguments MODE (optional to preserve verbosity), OUTPUT_DIRECTORY, JOB_NAME, and TEX_FILE. The default is `{colors.faint(xelatex_default_miktex)}` for MiKTeX, and `{colors.faint(xelatex_default_texlive)}` for TeX Live and other TeX distributions.")
     
     args = parser.parse_args()
 
     if args.verbose: logger.setLevel(logging.DEBUG)
+
+    xelatex_command = args.xelatex_command_line or get_xelatex_command()
 
     input_dir = Path(args.input_dir).absolute()
     
@@ -414,7 +421,7 @@ def main():
     
     images_config = parse_image_config(book_config.directory / "Images")
 
-    result = convert_book_1(book_config, images_config, output_dir, work_dir, args.bleed, args.dont_print_images, args.xelatex_command_line)
+    result = convert_book_1(book_config, images_config, output_dir, work_dir, args.bleed, args.dont_print_images, xelatex_command)
 
     if not args.skip_images:
         generate_images(images_config, work_dir, result[0], args.bleed)
