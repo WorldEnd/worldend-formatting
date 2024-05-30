@@ -399,7 +399,7 @@ def main():
     parser.add_argument("-d", "--dont-print-images", action="store_true", help="Don't print the images to the PDF. Greatly speeds up execution.")
     parser.add_argument("-x", "--xelatex-command-line",
                         type=str,
-                        help=f"Allow overriding the command used to call xelatex.\n This will be formatted with `{colors.faint('str.format')}`, with keyword arguments MODE (optional to preserve verbosity), OUTPUT_DIRECTORY, JOB_NAME, and TEX_FILE. The default is `{colors.faint(xelatex_default_miktex)}` for MiKTeX, and `{colors.faint(xelatex_default_texlive)}` for TeX Live and other TeX distributions.")
+                        help=f"Allow overriding the command used to call xelatex. This will be formatted with `{colors.faint('str.format')}`, with keyword arguments MODE (optional to preserve verbosity), OUTPUT_DIRECTORY, JOB_NAME, and TEX_FILE. The default is `{colors.faint(xelatex_default_miktex)}` for MiKTeX, and `{colors.faint(xelatex_default_texlive)}` for TeX Live and other TeX distributions.")
     
     args = parser.parse_args()
 
