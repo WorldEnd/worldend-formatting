@@ -92,12 +92,6 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
                     + end_command + "}" + start_command)
         
         regex_replacements = {
-            rf"{after_wchar}((\.\.\.)|(…)){before_wchar}": r"{\\EllipsisSplittable}",
-            rf"{after_wchar}—{before_wchar}": r"{\\EmDashSplittable}",
-            
-            r"((\.\.\.)|(…))": r"{\\Ellipsis}",
-            r"—": r"{\\EmDash}",
-            
             rf"</span>": r"\\end{SpanEnv}",
 
             rf'<span class="v-centered-page">': span_replacement(
