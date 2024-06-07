@@ -295,7 +295,7 @@ def draw_page_numbers(page_numbers: list[int], toc_path: Path, output_path: Path
 
     draw = ImageDraw.Draw(image)
     font = ImageFont.truetype(
-        common_dir() / "Fonts" / "HomepageBaukasten-Book.ttf", size=42
+        common_dir() / "Fonts" / "HomepageBaukasten-Book" / "HomepageBaukasten-Book-Modified.ttf", size=42
     )
 
     text_color = (0, 0, 0)
