@@ -7,8 +7,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path, PurePosixPath
-# We use regex instead of re, this import is just for type hinting
-from re import Match
 
 import colorlog
 import colors
@@ -20,10 +18,8 @@ from Lib.config import (Book, Chapter, ImageInfo, ImagesConfig, Part, TOCImage,
                         parse_book_config, parse_image_config)
 from Lib.project_dirs import common_dir
 from PIL import Image, ImageDraw, ImageFont
-from pylatexenc.latexencode import (RULE_DICT, RULE_REGEX,
-                                    UnicodeToLatexConversionRule,
-                                    UnicodeToLatexEncoder,
-                                    get_builtin_uni2latex_dict)
+from pylatexenc.latexencode import (RULE_REGEX, UnicodeToLatexConversionRule,
+                                    UnicodeToLatexEncoder)
 
 formatter = colorlog.ColoredFormatter(
     '%(log_color)s%(levelname)s: %(message)s',
@@ -78,12 +74,9 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
     if not hasattr(get_latex_converter, "converter"):
         # Check whether this character is preceded/followed by a word character
         # (\w), possibly with some HTML tags in between
-        after_wchar = r"(?<=\w(<[^<>]+>)*)"
-        before_wchar = r"(?=(<[^<>]+>)*\w)"
+        after_wchar = r"(?<=\w(?:<[^<>]+>)*)"
+        before_wchar = r"(?=(?:<[^<>]+>)*\w)"
 
-        # HTML class name
-        classname = r"(?:-?[_a-zA-Z][_a-zA-Z0-9-]*)"
-        
         # Command to run at the beginning of the span, and command to run
         # at the end. Use \bgroup and \egroup instead of { and } if you need to
         # enclose something between the start and end command
@@ -92,6 +85,9 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
                     + end_command + "}" + start_command)
         
         regex_replacements = {
+            rf"{after_wchar}(?:(?:\.\.\.)|(?:…)){before_wchar}": r"{\\EllipsisSplittable}",
+            r"(?:(?:\.\.\.)|(?:…))": r"{\\Ellipsis}",
+
             rf"</span>": r"\\end{SpanEnv}",
 
             rf'<span class="v-centered-page">': span_replacement(
@@ -204,7 +200,7 @@ def image_latex_command(img_info: ImageInfo) -> str:
         else:
             raise AssertionError(img_info.image_type)
 
-def convert_book_1(book_config: Book, image_config: ImagesConfig, output_dir: Path, work_dir: Path, bleed=False, dont_print_images=False, xelatex_command_line: str = xelatex_default_texlive):
+def convert_book(book_config: Book, image_config: ImagesConfig, output_dir: Path, work_dir: Path, bleed=False, dont_print_images=False, skip_generate_images=False, xelatex_command_line: str = xelatex_default_texlive):
     content_lines = []
     for img_info in image_config.insert_images.values():
         content_lines.append(image_latex_command(img_info))
@@ -257,19 +253,21 @@ def convert_book_1(book_config: Book, image_config: ImagesConfig, output_dir: Pa
     # we're going to implement auto-generation of the table of contents with
     # correct page numbers, which requires a first pass to actually determine
     # the page numbers.
-    # The first pass doesn't take very long since we don't print the images.
+    # The first pass doesn't take very long since we don't print the images.    
+
     logger.info("==Starting xelatex (first pass)==")
     env["TEXINPUTS"] = tex_inputs_no_images
     subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
 
-    page_numbers = get_page_numbers(page_numbers_file)
+    if not skip_generate_images:
+        page_numbers = get_page_numbers(page_numbers_file)
+        generate_images(image_config, work_dir, page_numbers, bleed)
 
-    return page_numbers, intermediate_output_directory, output_stem, main_tex_file, tex_inputs, args, env
+    if not dont_print_images:
+        logger.info("==Starting xelatex (second pass)==")
+        env["TEXINPUTS"] = tex_inputs
+        subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
 
-def convert_book_2(intermediate_output_directory: Path, output_stem: str, main_tex_file: Path, tex_inputs: str, args: list[str], env: dict[str, str], output_dir: Path):
-    logger.info("==Starting xelatex (final pass)==")
-    env["TEXINPUTS"] = tex_inputs
-    subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
     logger.info("==Finished xelatex==")
     intermediate_output_file = intermediate_output_directory / (output_stem + ".pdf")
     final_output_file = output_dir / (output_stem + ".pdf")
@@ -417,12 +415,7 @@ def main():
     
     images_config = parse_image_config(book_config.directory / "Images")
 
-    result = convert_book_1(book_config, images_config, output_dir, work_dir, args.bleed, args.dont_print_images, xelatex_command)
-
-    if not args.skip_images:
-        generate_images(images_config, work_dir, result[0], args.bleed)
-
-    convert_book_2(*result[1:], output_dir)
+    result = convert_book(book_config, images_config, output_dir, work_dir, args.bleed, args.dont_print_images, args.skip_images, xelatex_command)
 
 if __name__ == '__main__':
     main()
