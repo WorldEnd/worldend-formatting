@@ -4,7 +4,7 @@
 You should have the following:
 
 1. Python packages listed in `Scripts/requirements.txt`.
-2. `xelatex` in your PATH.
+2. (If exporting to PDF) `xelatex` in your PATH.
     * If your TeX distribution does not support automatically installing missing packages, you'll also need to install all the necessary TeX packages to compile `Common/TeX/WorldEnd2_Common.tex`.
 
 # Usage
@@ -28,5 +28,3 @@ python ./Scripts/output_epub.py "./Volumes/Volume 3/" "./Output/"
 
 - The first argument (`"./Volumes/Volume 3/"`) specifies the path to the directory containing the volume.
 - The second argument (`"./Output/"`) is the location for the output file and any temporary working files.
-
-**NOTE:** The only prerequisites for exporting to EPUB are the Python packages listed in `Scripts/requirements.txt` (not all packages are necessary).
