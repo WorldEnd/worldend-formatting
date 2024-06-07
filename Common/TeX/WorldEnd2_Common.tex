@@ -4,14 +4,16 @@
 \newwrite\pageNumbersFile
 \immediate\openout\pageNumbersFile=\jobname.page-numbers.txt
 
-% ======= Optional include files based on include dirs =======
 
+% ======= Optional include files based on include dirs =======
 % If directory Optional/NoImages is added to TEXINPUTS, this file defines
 % the command \dontPrintImages
 \InputIfFileExists{noimages.tex}{}{}
 
+
 % ======= Include generated config =======
 \input{config.tex}
+
 
 % ======= Page size and margins =======
 \documentclass[twoside]{minimal}
@@ -65,12 +67,13 @@
 
 
 % ======= Utilities =======
-\usepackage[english]{babel}
+% \usepackage[english]{babel}
+\usepackage{polyglossia}
+\setdefaultlanguage{english}
 \usepackage{microtype}
 \usepackage{tikz}
 \usepackage{soul}
 \usepackage{xstring}
-% \setlength{\emergencystretch}{3em}
 
 \newcommand{\textof}[2][sb]{{\fontseries{#1}\selectfont #2}}
 \newcommand*\newleftpage{\newpage\ifodd\value{page}\hbox{}\thispagestyle{empty}\newpage\fi}
@@ -79,6 +82,7 @@
 \newenvironment*{SpanEnv}
   { \providecommand{\SpanEnvClose}{} } % begin command
   { \SpanEnvClose } % end command
+
 
 % ======= Header =======
 \usepackage{fancyhdr}
@@ -91,8 +95,8 @@
 
 \newcommand{\setChapterTitleInHeader}[2]{\fancyhead[CO]{\athiti\fontsize{7.5}{1}\selectfont \textof[sb]{\uppercase{#1}} \textof[m]{-{\lowercase{#2}}-}\hspace{0.25in}}}
 
-% ======= Page Number =======
 
+% ======= Page Number =======
 \setcounter{page}{-9999}
 
 % Reset the page number to arg1 if this is the first time we have called this command
@@ -102,18 +106,25 @@
   \fi
 }
 
-% ======= Line splitting =======
 
-\newcommand{\EmDash}{\textemdash}
-\newcommand{\Ellipsis}{\ldots}
+% ======= Typography =======
+\setlength{\lefthyphenmin}{2}
+\setlength{\righthyphenmin}{3}
+\setlength{\tolerance}{2000}
+\setlength{\hbadness}{1000}
+\setlength{\linepenalty}{10}
+\setlength{\brokenpenalty}{100}
+\setlength{\clubpenalty}{100}
+\setlength{\widowpenalty}{100}
+\setlength{\displaywidowpenalty}{100}
+\setlength{\hyphenpenalty}{50}
+\setlength{\exhyphenpenalty}{50}
+\setlength{\spaceskip}{3.33333pt plus 1.66666pt minus 1.11111pt}
+\setlength{\xspaceskip}{3.33333pt plus 1pt}
+\setlength{\emergencystretch}{0.5em}
 
-% The \penalty means that we can break a line here, with the given penalty for doing so. 
-% Note that the default penalty for inserting hyphens to break is 50.
-\newcommand{\EmDashSplittable}{\EmDash \penalty25}
-\newcommand{\EllipsisSplittable}{\Ellipsis \penalty15}
 
 % ======= Content Commands =======
-
 \newcommand{\icon}{
   % The icon takes up 3 lines
   \begin{center}
@@ -150,25 +161,19 @@
 
 \newcommand{\insertPartText}[1]{\noindent\input{#1}}
 
-% ======= Image Commands =======
 
-\ifx \dontPrintImages \undefined
-  \newcommand{\insertTikzPicture}[2]{
-    \begin{tikzpicture}[remember picture,overlay,every node/.style={inner sep=0,outer sep=0}]
-      \node[anchor=#1, yshift=0pt,xshift=0pt]%
-          at (current page.#1)
-          {\includegraphics[height=\paperheight]{#2}};
-    \end{tikzpicture}
-  }
-\else
+% ======= Image Commands =======
 \newcommand{\insertTikzPicture}[2]{
   \begin{tikzpicture}[remember picture,overlay,every node/.style={inner sep=0,outer sep=0}]
-    \node[anchor=#1, yshift=0pt,xshift=0pt]%
-        at (current page.#1)
-        {\phantom{\includegraphics[height=\paperheight]{#2}}};
+    \node[anchor=#1,yshift=0pt,xshift=0pt] at (current page.#1) {
+      \ifx\dontPrintImages\undefined
+        \includegraphics[height=\paperheight]{#2}
+      \else
+        \phantom{\includegraphics[height=\paperheight]{#2}}
+      \fi
+    };
   \end{tikzpicture}
 }
-\fi
 
 \newcommand{\insertSingleImage}[1]{
   \newpage\thispagestyle{empty}\insertTikzPicture{north west}{#1}
