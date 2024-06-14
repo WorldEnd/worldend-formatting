@@ -12,6 +12,7 @@ import colorlog
 import colors
 import cv2
 import numpy as np
+import pint
 import regex
 from argparse_color_formatter import ColorHelpFormatter
 from Lib.config import (Book, Chapter, ImageInfo, ImagesConfig, Part, TOCImage,
@@ -39,6 +40,8 @@ logger = logging.getLogger(__name__)
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
+ureg = pint.UnitRegistry()
+
 xelatex_default_miktex = 'xelatex -interaction={MODE} -enable-installer -output-directory={OUTPUT_DIRECTORY} -job-name={JOB_NAME} {TEX_FILE}'
 xelatex_default_texlive = 'xelatex -interaction={MODE} -output-directory={OUTPUT_DIRECTORY} -jobname={JOB_NAME} {TEX_FILE}'
 
@@ -61,6 +64,11 @@ def get_xelatex_command():
 
 def in_curlies(s):
     return "{" + str(s) + "}"
+
+def length_to_inches(length: str) -> float:
+    quantity = ureg(length)
+    converted_quantity = quantity.to("inch")
+    return converted_quantity.magnitude
 
 def env_path_prepend(s_old: str, *args) -> str:
     l = list(args)
@@ -403,8 +411,8 @@ def main():
     parser.add_argument("output_dir")
     parser.add_argument("-h", "--help", action="help", default=argparse.SUPPRESS,
                         help="Show this help message and exit.")
-    parser.add_argument("-b", "--bleed-size", default=0.0, type=float, help="Specify bleed size (in inches). Recommended size is 0.125 inches, if printing.")
-    parser.add_argument("-g", "--gutter-size", default=0.0, type=float, help="Specify gutter size (in inches). Recommended size is 0.15 inches, if printing.")
+    parser.add_argument("-b", "--bleed-size", default="0.0in", type=str, help="Specify bleed size. Recommended size is 0.125in, if printing.")
+    parser.add_argument("-g", "--gutter-size", default="0.0in", type=str, help="Specify gutter size. Recommended size is 0.15in, if printing.")
     parser.add_argument("-n", "--no-cover", action="store_true", help="Do not include cover in output file.")
     parser.add_argument("-v", "--verbose", action="store_true", help="Be verbose.")
     parser.add_argument("-s", "--skip-images", action="store_true", help="Skip generating the images. Will use previously generated images. Speeds up execution.")
@@ -416,12 +424,12 @@ def main():
     # Custom action for `--print-mode`
     class PrintMode(argparse.Action):
         def __call__(self, parser, namespace, values, option_string=None):
-            setattr(namespace, 'bleed_size', 0.125)
-            setattr(namespace, 'gutter_size', 0.15)
+            setattr(namespace, 'bleed_size', "0.125in")
+            setattr(namespace, 'gutter_size', "0.15in")
             setattr(namespace, 'no_cover', True)
 
     parser.add_argument("-p", "--print-mode", action=PrintMode, nargs=0,
-                        help=f"Activate print mode, short for `{colors.faint("-b 0.125 -g 0.15 -n")}`")
+                        help=f"Activate print mode, short for `{colors.faint("-b 0.125in -g 0.15in -n")}`")
     
     args = parser.parse_args()
 
@@ -445,7 +453,7 @@ def main():
     
     images_config = parse_image_config(book_config.directory / "Images")
 
-    result = convert_book(book_config, images_config, output_dir, work_dir, args.bleed_size, args.dont_print_images, args.skip_images, xelatex_command, args.no_cover, args.gutter_size)
+    result = convert_book(book_config, images_config, output_dir, work_dir, length_to_inches(args.bleed_size), args.dont_print_images, args.skip_images, xelatex_command, args.no_cover, length_to_inches(args.gutter_size))
 
 if __name__ == '__main__':
     main()
