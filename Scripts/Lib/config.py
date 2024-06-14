@@ -1,5 +1,6 @@
 import itertools
 import math
+import pint
 import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
@@ -19,6 +20,7 @@ from PIL import Image
 
 from .debug_printable import DebugPrintable
 
+ureg = pint.UnitRegistry()
 
 class Book(DebugPrintable):
     chapters: "list[Chapter]"
@@ -130,8 +132,8 @@ class ImagesConfig(DebugPrintable):
         with open(config_file, "r") as f:
             data = yaml.safe_load(f)
         config = ImagesConfig()
-        config.parse_yaml(data)
         config.directory = config_file.parent.resolve()
+        config.parse_yaml(data)
         return config
 
     def parse_yaml(self, node: dict):
@@ -187,41 +189,19 @@ class ImageInfo(ABC, DebugPrintable):
     vI: int = 1
 
     def length_to_inches(self, length: str) -> float:
-        m = re.match(r"^(\d+(?:\.\d+)?((?:in)|(?:cm)|(?:px)))$", length)
-        if m is None:
-            raise ValueError(f"Could not match `{length}` as a length")
-        value = float(m[1])
-        match m[2]:
-            case "in":
-                return value
-            case "cm":
-                return value / 2.54 # cm per in
-            case "px":
-                if (int(value) - value) != 0:
-                    raise ValueError(f"Non whole-number of pixels `{value}`")
-                return value / self.px_per_in
+        quantity = ureg(length)
+        converted_quantity = quantity.to("inch")
+        return converted_quantity.magnitude
 
     def length_to_px(self, length: str) -> int:
-        m = re.match(r"^(\d+(?:\.\d+)?((?:in)|(?:cm)|(?:px)))$", length)
-        if m is None:
-            raise ValueError(f"Could not match `{length}` as a length")
-        value = float(m[1])
-        match m[2]:
-            case "in":
-                return round(value * self.px_per_in)
-            case "cm":
-                return round(value * self.px_per_in / 2.54)
-            case "px":
-                if (int(value) - value) != 0:
-                    raise ValueError(f"Non whole-number of pixels `{value}`")
-                return int(value)
-    
+        return round(self.length_to_inches(length) * self.px_per_in)
+
     def parse_yaml(self, node: dict):
         self.image_type = node["image_type"]
         
         self.height_inches = PAPER_H_IN
-        if "height_inches" in node:
-            self.height_inches = self.length_to_inches(node["height_inches"])
+        if "height" in node:
+            self.height_inches = self.length_to_inches(node["height"])
 
         self.offset_px = (0, 0)
         if "offset" in node:
