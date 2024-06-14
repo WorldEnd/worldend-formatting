@@ -1,5 +1,6 @@
 from .config import (
     Chapter,
+    Book,
     ImagesConfig,
     CoverImage,
     FillerImage,
@@ -28,7 +29,7 @@ class EPUBState:
         self.previous_is_first = False
         self.previous_is_split = False
 
-    def set_three(self, old_break, old_subpart, old_split):
+    def set_three(self, old_break: bool, old_subpart: bool, old_split: bool):
         self.previous_is_break = old_break
         self.previous_is_subpart = old_subpart
         self.previous_is_split = old_split
@@ -42,7 +43,7 @@ class EPUBGenerator:
     images_config: ImagesConfig
 
     @classmethod
-    def from_book_config(cls, book_config, images_config):
+    def from_book_config(cls, book_config: Book, images_config: ImagesConfig):
         book = cls()
         book.book_volume = book_config.volume
         book.isbn = book_config.isbn
@@ -51,7 +52,7 @@ class EPUBGenerator:
         book.images_config = images_config
         return book
 
-    def process_line(self, line, state):
+    def process_line(self, line: str, state: EPUBState) -> str:
         span = regex.match(r'^<span class="v-centered-page">(.+?)</span>$', line)
 
         if line == "* * *":
@@ -87,7 +88,7 @@ class EPUBGenerator:
             state.set_three(False, False, False)
             return result
 
-    def process_chapter(self, chapter_number):
+    def process_chapter(self, chapter_number: int) -> list[list[str]]:
         letters = iter(string.ascii_lowercase)
 
         title_subtitle = self.replace_text(
@@ -121,7 +122,7 @@ class EPUBGenerator:
                 output.append([beginning] + sublist + [end])
         return output
 
-    def _join_chapter_parts(self, chapter_number):
+    def _join_chapter_parts(self, chapter_number: int) -> list[list[str]]:
         combined_content = []
 
         state = EPUBState()
@@ -172,7 +173,7 @@ class EPUBGenerator:
             combined_content.append(current_section)
         return combined_content
 
-    def generate_chapter_pages(self, chapter_number):
+    def generate_chapter_pages(self, chapter_number: int) -> str:
         return self.replace_text(
             "<?xml version='1.0' encoding='utf-8'?>\n"
             '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="fr" lang="fr">\n'
@@ -191,7 +192,7 @@ class EPUBGenerator:
             start=chapter_number,
         )
 
-    def generate_nav_xhtml(self):
+    def generate_nav_xhtml(self) -> str:
         text = self.replace_text(
             "<?xml version='1.0' encoding='utf-8'?>\n"
             '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="fr" lang="fr">\n'
@@ -230,7 +231,7 @@ class EPUBGenerator:
 
         return text
 
-    def generate_title_page(self):
+    def generate_title_page(self) -> str:
         return self.replace_text(
             '<?xml version="1.0" encoding="UTF-8"?><html xmlns:epub="http://www.idpf.org/2007/ops" xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">\n'
             "<head>\n"
@@ -250,7 +251,7 @@ class EPUBGenerator:
             "</html>",
         )
 
-    def generate_insert_pages(self, insert_number):
+    def generate_insert_pages(self, insert_number: int) -> str:
         return self.replace_text(
             '<?xml version="1.0" encoding="UTF-8"?><html xmlns:epub="http://www.idpf.org/2007/ops" xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">\n'
             "<head>\n"
@@ -268,7 +269,7 @@ class EPUBGenerator:
             extra_replacements={"INSERT_NUMBER": insert_number},
         )
 
-    def generate_toc_xhtml(self):
+    def generate_toc_xhtml(self) -> str:
         text = self.replace_text(
             '<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">\n'
             "<head>\n"
@@ -295,7 +296,7 @@ class EPUBGenerator:
 
         return text
 
-    def generate_toc_ncx(self):
+    def generate_toc_ncx(self) -> str:
         text = self.replace_text(
             "<?xml version='1.0' encoding='utf-8'?>\n"
             '<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1" xml:lang="en">\n'
@@ -352,7 +353,7 @@ class EPUBGenerator:
         text += "  </navMap>\n" "</ncx>"
         return text
 
-    def generate_cover_page(self):
+    def generate_cover_page(self) -> str:
         return self.replace_text(
             "<?xml version='1.0' encoding='utf-8'?>\n"
             '<html xmlns:epub="http://www.idpf.org/2007/ops" xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">\n'
@@ -368,7 +369,7 @@ class EPUBGenerator:
             "</html>",
         )
 
-    def generate_package_opf(self, combined_chapters):
+    def generate_package_opf(self, combined_chapters: dict[int, list[list[str]]]):
         is_insert = lambda insert: not isinstance(
             insert, (CoverImage, FillerImage, TOCImage, TitlePageImage)
         )
@@ -479,12 +480,12 @@ class EPUBGenerator:
 
     def replace_text(
         self,
-        text,
+        text: str,
         things=[None],
         extra_replacements={},
         start=1,
         conditional_function=None,
-    ):
+    ) -> str:
         result = ""
         counter = start
         for thing in things:
