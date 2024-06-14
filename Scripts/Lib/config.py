@@ -172,7 +172,6 @@ class ImagesConfig(DebugPrintable):
 
 PAPER_W_IN = 5.5
 PAPER_H_IN = 8.25
-BLEED_IN = 0.125
 
 class ImageInfo(ABC, DebugPrintable):
     image_type: Literal['single', 'double']
@@ -232,7 +231,7 @@ class ImageInfo(ABC, DebugPrintable):
             self.offset_px = tuple(self.length_to_px(offset) for offset in offset_list)
 
     @abstractmethod
-    def canvas_size_px(self, bleed: bool) -> tuple[int, int]:
+    def canvas_size_px(self, bleed_size: float) -> tuple[int, int]:
         pass
     
     def image_title(self) -> str:
@@ -247,8 +246,8 @@ class ImageInfo(ABC, DebugPrintable):
     def absolute_image_path(self) -> Path:
         return self.parent.directory / self.relative_image_path()
     
-    def padding_lrtb(self, bleed: bool) -> tuple[int, int, int, int]:
-        canvas_w, canvas_h = self.canvas_size_px(bleed)
+    def padding_lrtb(self, bleed_size: float) -> tuple[int, int, int, int]:
+        canvas_w, canvas_h = self.canvas_size_px(bleed_size)
         img_w, img_h = self.size_px
         offset_w, offset_h = self.offset_px
         
@@ -286,8 +285,8 @@ class ImageInfo(ABC, DebugPrintable):
 
 class SingleImage(ImageInfo):    
     @override
-    def canvas_size_px(self, bleed: bool) -> tuple[int, int]:
-        return _canvas_size_px_helper(bleed, False, self.px_per_in,
+    def canvas_size_px(self, bleed_size: float) -> tuple[int, int]:
+        return _canvas_size_px_helper(bleed_size, False, self.px_per_in,
                                       self.width_px, self.height_px)
 
 class TitlePageImage(SingleImage):
@@ -310,20 +309,19 @@ class DoubleImage(ImageInfo):
             self.overlap_px = self.length_to_px(node["overlap"])
 
     @override
-    def canvas_size_px(self, bleed: bool) -> tuple[int, int]:
-        return _canvas_size_px_helper(bleed, True, self.px_per_in, self.width_px, 
+    def canvas_size_px(self, bleed_size: float) -> tuple[int, int]:
+        return _canvas_size_px_helper(bleed_size, True, self.px_per_in, self.width_px,
                                       self.height_px, self.overlap_px)
 
 class TOCImage(DoubleImage):
     pass
 
-def _canvas_size_px_helper(bleed: bool, is_two_page: bool, px_per_in: float, width_px: int, height_px: int, overlap_px: int = 0) -> tuple[int, int]:
-    bleed_in = BLEED_IN if bleed else 0
+def _canvas_size_px_helper(bleed_size: float, is_two_page: bool, px_per_in: float, width_px: int, height_px: int, overlap_px: int = 0) -> tuple[int, int]:
     if is_two_page:
         base_page_size_in = np.array([PAPER_W_IN * 2., PAPER_H_IN])
     else: 
         base_page_size_in = np.array([PAPER_W_IN, PAPER_H_IN])
-    full_page_size_in = base_page_size_in + (2 * bleed_in)
+    full_page_size_in = base_page_size_in + (2 * bleed_size)
     full_page_size_px = full_page_size_in * px_per_in
     
     # We round the canvas size down, so that the image is comparatively
