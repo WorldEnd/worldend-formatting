@@ -16,6 +16,24 @@ from datetime import datetime
 uuid = str(uuid.uuid4())
 
 
+class EPUBState:
+    previous_is_break: bool
+    previous_is_subpart: bool
+    previous_is_first: bool
+    previous_is_split: bool
+
+    def __init__(self):
+        self.previous_is_break = False
+        self.previous_is_subpart = False
+        self.previous_is_first = False
+        self.previous_is_split = False
+
+    def set_three(self, old_break, old_subpart, old_split):
+        self.previous_is_break = old_break
+        self.previous_is_subpart = old_subpart
+        self.previous_is_split = old_split
+
+
 class EPUBGenerator:
     book_volume: int
     isbn: str
@@ -33,17 +51,11 @@ class EPUBGenerator:
         book.images_config = images_config
         return book
 
-    def process_line(
-        self,
-        line,
-        previous_is_break=False,
-        previous_is_subpart=False,
-        previous_is_first=False,
-        previous_is_split=False,
-    ):
+    def process_line(self, line, state):
         span = regex.match(r'^<span class="v-centered-page">(.+?)</span>$', line)
 
         if line == "* * *":
+            state.set_three(False, True, False)
             return (
                 '<div class="ext_ch">\n'
                 '<div class="decoration-rw10">\n'
@@ -51,33 +63,29 @@ class EPUBGenerator:
                 '<div class="pc-rw"><img class="ornament1" alt="" src="images/Art_sborn.jpg"/></div>\n'
                 "</div>\n"
                 "</div>\n"
-                "</div>",
-                False,
-                True,
-                False,
+                "</div>"
             )
         elif line == "<br/>":
-            return "", True, False, False
+            state.set_three(True, False, False)
+            return ""
         elif span:
-            return span.group(1), False, False, True
+            state.set_three(False, False, True)
+            return span.group(1)
         else:
-            return (
-                '<p class="{}">{}</p>'.format(
-                    (
-                        "space-break"
-                        if previous_is_break
-                        else (
-                            "tx1"
-                            if previous_is_subpart
-                            else ("cotx1a" if previous_is_first else "tx")
-                        )
-                    ),
-                    line,
+            result = '<p class="{}">{}</p>'.format(
+                (
+                    "space-break"
+                    if state.previous_is_break
+                    else (
+                        "tx1"
+                        if state.previous_is_subpart
+                        else ("cotx1a" if state.previous_is_first else "tx")
+                    )
                 ),
-                False,
-                False,
-                False,
+                line,
             )
+            state.set_three(False, False, False)
+            return result
 
     def process_chapter(self, chapter_number):
         letters = iter(string.ascii_lowercase)
@@ -116,17 +124,14 @@ class EPUBGenerator:
     def _join_chapter_parts(self, chapter_number):
         combined_content = []
 
-        previous_is_break = False
-        previous_is_subpart = False
-        previous_is_first = False
-        previous_is_split = False
+        state = EPUBState()
 
         current_section = []
 
         for part in self.chapters[chapter_number - 1].parts:
             if part.title is None:
                 filename = f"{chapter_number}.md"
-                previous_is_first = True
+                state.previous_is_first = True
             else:
                 filename = f"{chapter_number}.{part.number}.md"
                 current_section.append(
@@ -136,7 +141,7 @@ class EPUBGenerator:
                         title=part.title,
                     )
                 )
-                previous_is_subpart = True
+                state.previous_is_subpart = True
 
             with open(self.text_directory / filename, "r") as file:
                 lines = file.readlines()
@@ -147,28 +152,14 @@ class EPUBGenerator:
                 )
 
                 if stripped_line:
-                    (
-                        new_line,
-                        new_previous_is_break,
-                        new_previous_is_subpart,
-                        new_previous_is_split,
-                    ) = self.process_line(
-                        stripped_line,
-                        previous_is_break,
-                        previous_is_subpart,
-                        previous_is_first,
-                        previous_is_split,
-                    )
-                    previous_is_break = new_previous_is_break
-                    previous_is_subpart = new_previous_is_subpart
-                    previous_is_first = False
-                    previous_is_split = new_previous_is_split
-                    if previous_is_split:
+                    new_line = self.process_line(stripped_line, state)
+                    state.previous_is_first = False
+                    if state.previous_is_split:
                         combined_content.append(current_section)
                         if new_line:
                             combined_content.append([f'<p class="tx10">{new_line}</p>'])
                         current_section = []
-                        previous_is_split = False
+                        state.previous_is_split = False
                     elif new_line:
                         if not current_section:
                             current_section.append(
