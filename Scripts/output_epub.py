@@ -114,11 +114,6 @@ def convert_zip_to_epub(output_file: Path, intermediate_output_directory: Path):
         epub.close()
 
 
-def write_file(filepath: Path, content):
-    with open(filepath, "w") as file:
-        file.write(content)
-
-
 def convert_md_to_html(
     generator: EPUBGenerator,
     book_config: Book,
@@ -133,15 +128,13 @@ def convert_md_to_html(
     letters = iter(string.ascii_lowercase)
 
     for chapter_number, combined_content in combined_chapters.items():
-        write_file(
-            output_dir / f"chapter{chapter_number:03}.xhtml",
-            generator.generate_chapter_pages(chapter_number),
+        (output_dir / f"chapter{chapter_number:03}.xhtml").write_text(
+            generator.generate_chapter_pages(chapter_number)
         )
         for section in combined_content:
             letter = next(letters)
-            write_file(
-                output_dir / f"chapter{chapter_number:03}{letter}.xhtml",
-                "\n".join(section),
+            (output_dir / f"chapter{chapter_number:03}{letter}.xhtml").write_text(
+                "\n".join(section)
             )
 
         letters = iter(string.ascii_lowercase)
@@ -149,19 +142,18 @@ def convert_md_to_html(
     insert_number = 1
     for insert in images_config.insert_images.values():
         if not isinstance(insert, (CoverImage, FillerImage, TOCImage, TitlePageImage)):
-            write_file(
-                output_dir / f"insert{insert_number:03}.xhtml",
-                generator.generate_insert_pages(insert_number),
+            (output_dir / f"insert{insert_number:03}.xhtml").write_text(
+                generator.generate_insert_pages(insert_number)
             )
             insert_number += 1
 
-    write_file(output_dir / "cover.xhtml", generator.generate_cover_page())
-    write_file(output_dir / "nav.xhtml", generator.generate_nav_xhtml())
-    write_file(output_dir / "titlepage.xhtml", generator.generate_title_page())
-    write_file(output_dir / "toc.xhtml", generator.generate_toc_xhtml())
-    write_file(output_dir / "toc.ncx", generator.generate_toc_ncx())
-    write_file(
-        output_dir / "package.opf", generator.generate_package_opf(combined_chapters)
+    (output_dir / "cover.xhtml").write_text(generator.generate_cover_page())
+    (output_dir / "nav.xhtml").write_text(generator.generate_nav_xhtml())
+    (output_dir / "titlepage.xhtml").write_text(generator.generate_title_page())
+    (output_dir / "toc.xhtml").write_text(generator.generate_toc_xhtml())
+    (output_dir / "toc.ncx").write_text(generator.generate_toc_ncx())
+    (output_dir / "package.opf").write_text(
+        generator.generate_package_opf(combined_chapters)
     )
 
 

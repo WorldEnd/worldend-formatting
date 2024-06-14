@@ -167,13 +167,11 @@ def format_text(text: str) -> str:
 
 def convert_part_text(part: Part, work_dir: Path, content_lines: list[str]):
     output_filename = work_dir / (part.base_filename() + ".tex")
-    with open(part.text_filepath(), "r") as in_file:
-        input_text = in_file.read()
+    input_text = part.text_filepath().read_text()
 
     output_text = format_text(input_text)
     
-    with open(output_filename, "w") as out_file:
-        out_file.write(output_text)
+    output_filename.write_text(output_text)
 
     content_lines.append(fr"\insertPartText{in_curlies(output_filename.name)}")
 
@@ -237,8 +235,7 @@ def convert_book(
         convert_chapter(chapter, work_dir, content_lines)
 
     content_text = "\n\n".join(content_lines)
-    with open(work_dir / "content.tex", "w") as content_file:
-        content_file.write(content_text)
+    (work_dir / "content.tex").write_text(content_text)
 
     config_lines = []
     config_lines.append(r"\newcommand{\volumeNumberHeaderText}{Vol." + str(book_config.volume) + "}")
@@ -248,8 +245,7 @@ def convert_book(
         config_lines.append(r"\providecommand{\dontPrintImages}{}")
 
     config_text = "\n".join(config_lines)
-    with open(work_dir / "config.tex", "w") as config_file:
-        config_file.write(config_text)
+    (work_dir / "config.tex").write_text(config_text)
 
     intermediate_output_directory = work_dir / "CompilationDir"
     os.makedirs(intermediate_output_directory, exist_ok=True)
@@ -304,14 +300,14 @@ def convert_book(
 
 def get_page_numbers(file_path: Path):
     page_numbers = []
-    with open(file_path, 'r') as file:
-        for line in file:
-            match = regex.match(r'ChapterPageNumber:\s*(\d+)', line)
-            if match:
-                page_numbers.append(int(match.group(1)))
-            else:
-                # Basic error handling as a sanity check
-                raise ValueError(f"Error: Invalid line in page-numbers file: `{line}`")
+    content = file_path.read_text()
+    for line in content.splitlines():
+        match = regex.match(r'ChapterPageNumber:\s*(\d+)', line)
+        if match:
+            page_numbers.append(int(match.group(1)))
+        else:
+            # Basic error handling as a sanity check
+            raise ValueError(f"Error: Invalid line in page-numbers file: `{line}`")
     return page_numbers
 
 def draw_page_numbers(page_numbers: list[int], toc_path: Path, output_path: Path):

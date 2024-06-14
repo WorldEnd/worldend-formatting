@@ -37,8 +37,7 @@ class Book(DebugPrintable):
             print(f"Error: Config file does not exist: '{config_file}'")
             return None
 
-        with open(config_file, "r") as f:
-            data = yaml.safe_load(f)
+        data = yaml.safe_load(config_file.read_text())
         book = Book()
         book.parse_yaml(data)
         book.directory = config_file.parent.resolve()
@@ -127,8 +126,7 @@ class ImagesConfig(DebugPrintable):
             print(f"Error: Config file does not exist: '{config_file}'")
             return None
 
-        with open(config_file, "r") as f:
-            data = yaml.safe_load(f)
+        data = yaml.safe_load(config_file.read_text())
         config = ImagesConfig()
         config.parse_yaml(data)
         config.directory = config_file.parent.resolve()
