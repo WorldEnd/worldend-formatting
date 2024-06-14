@@ -1,5 +1,6 @@
 from .config import (
     Chapter,
+    Book,
     ImagesConfig,
     CoverImage,
     FillerImage,
@@ -16,6 +17,24 @@ from datetime import datetime
 uuid = str(uuid.uuid4())
 
 
+class EPUBState:
+    previous_is_break: bool
+    previous_is_subpart: bool
+    previous_is_first: bool
+    previous_is_split: bool
+
+    def __init__(self):
+        self.previous_is_break = False
+        self.previous_is_subpart = False
+        self.previous_is_first = False
+        self.previous_is_split = False
+
+    def set_three(self, old_break: bool, old_subpart: bool, old_split: bool):
+        self.previous_is_break = old_break
+        self.previous_is_subpart = old_subpart
+        self.previous_is_split = old_split
+
+
 class EPUBGenerator:
     book_volume: int
     isbn: str
@@ -24,7 +43,7 @@ class EPUBGenerator:
     images_config: ImagesConfig
 
     @classmethod
-    def from_book_config(cls, book_config, images_config):
+    def from_book_config(cls, book_config: Book, images_config: ImagesConfig):
         book = cls()
         book.book_volume = book_config.volume
         book.isbn = book_config.isbn
@@ -33,17 +52,11 @@ class EPUBGenerator:
         book.images_config = images_config
         return book
 
-    def process_line(
-        self,
-        line,
-        previous_is_break=False,
-        previous_is_subpart=False,
-        previous_is_first=False,
-        previous_is_split=False,
-    ):
+    def process_line(self, line: str, state: EPUBState) -> str:
         span = regex.match(r'^<span class="v-centered-page">(.+?)</span>$', line)
 
         if line == "* * *":
+            state.set_three(False, True, False)
             return (
                 '<div class="ext_ch">\n'
                 '<div class="decoration-rw10">\n'
@@ -51,35 +64,31 @@ class EPUBGenerator:
                 '<div class="pc-rw"><img class="ornament1" alt="" src="images/Art_sborn.jpg"/></div>\n'
                 "</div>\n"
                 "</div>\n"
-                "</div>",
-                False,
-                True,
-                False,
+                "</div>"
             )
         elif line == "<br/>":
-            return "", True, False, False
+            state.set_three(True, False, False)
+            return ""
         elif span:
-            return span.group(1), False, False, True
+            state.set_three(False, False, True)
+            return span.group(1)
         else:
-            return (
-                '<p class="{}">{}</p>'.format(
-                    (
-                        "space-break"
-                        if previous_is_break
-                        else (
-                            "tx1"
-                            if previous_is_subpart
-                            else ("cotx1a" if previous_is_first else "tx")
-                        )
-                    ),
-                    line,
+            result = '<p class="{}">{}</p>'.format(
+                (
+                    "space-break"
+                    if state.previous_is_break
+                    else (
+                        "tx1"
+                        if state.previous_is_subpart
+                        else ("cotx1a" if state.previous_is_first else "tx")
+                    )
                 ),
-                False,
-                False,
-                False,
+                line,
             )
+            state.set_three(False, False, False)
+            return result
 
-    def process_chapter(self, chapter_number):
+    def process_chapter(self, chapter_number: int) -> list[list[str]]:
         letters = iter(string.ascii_lowercase)
 
         title_subtitle = self.replace_text(
@@ -113,20 +122,17 @@ class EPUBGenerator:
                 output.append([beginning] + sublist + [end])
         return output
 
-    def _join_chapter_parts(self, chapter_number):
+    def _join_chapter_parts(self, chapter_number: int) -> list[list[str]]:
         combined_content = []
 
-        previous_is_break = False
-        previous_is_subpart = False
-        previous_is_first = False
-        previous_is_split = False
+        state = EPUBState()
 
         current_section = []
 
         for part in self.chapters[chapter_number - 1].parts:
             if part.title is None:
                 filename = f"{chapter_number}.md"
-                previous_is_first = True
+                state.previous_is_first = True
             else:
                 filename = f"{chapter_number}.{part.number}.md"
                 current_section.append(
@@ -136,7 +142,7 @@ class EPUBGenerator:
                         title=part.title,
                     )
                 )
-                previous_is_subpart = True
+                state.previous_is_subpart = True
 
             lines = (self.text_directory / filename).read_text().splitlines()
 
@@ -146,28 +152,14 @@ class EPUBGenerator:
                 )
 
                 if stripped_line:
-                    (
-                        new_line,
-                        new_previous_is_break,
-                        new_previous_is_subpart,
-                        new_previous_is_split,
-                    ) = self.process_line(
-                        stripped_line,
-                        previous_is_break,
-                        previous_is_subpart,
-                        previous_is_first,
-                        previous_is_split,
-                    )
-                    previous_is_break = new_previous_is_break
-                    previous_is_subpart = new_previous_is_subpart
-                    previous_is_first = False
-                    previous_is_split = new_previous_is_split
-                    if previous_is_split:
+                    new_line = self.process_line(stripped_line, state)
+                    state.previous_is_first = False
+                    if state.previous_is_split:
                         combined_content.append(current_section)
                         if new_line:
                             combined_content.append([f'<p class="tx10">{new_line}</p>'])
                         current_section = []
-                        previous_is_split = False
+                        state.previous_is_split = False
                     elif new_line:
                         if not current_section:
                             current_section.append(
@@ -180,7 +172,7 @@ class EPUBGenerator:
             combined_content.append(current_section)
         return combined_content
 
-    def generate_chapter_pages(self, chapter_number):
+    def generate_chapter_pages(self, chapter_number: int) -> str:
         return self.replace_text(
             "<?xml version='1.0' encoding='utf-8'?>\n"
             '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="fr" lang="fr">\n'
@@ -199,7 +191,7 @@ class EPUBGenerator:
             start=chapter_number,
         )
 
-    def generate_nav_xhtml(self):
+    def generate_nav_xhtml(self) -> str:
         text = self.replace_text(
             "<?xml version='1.0' encoding='utf-8'?>\n"
             '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="fr" lang="fr">\n'
@@ -238,7 +230,7 @@ class EPUBGenerator:
 
         return text
 
-    def generate_title_page(self):
+    def generate_title_page(self) -> str:
         return self.replace_text(
             '<?xml version="1.0" encoding="UTF-8"?><html xmlns:epub="http://www.idpf.org/2007/ops" xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">\n'
             "<head>\n"
@@ -258,7 +250,7 @@ class EPUBGenerator:
             "</html>",
         )
 
-    def generate_insert_pages(self, insert_number):
+    def generate_insert_pages(self, insert_number: int) -> str:
         return self.replace_text(
             '<?xml version="1.0" encoding="UTF-8"?><html xmlns:epub="http://www.idpf.org/2007/ops" xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">\n'
             "<head>\n"
@@ -276,7 +268,7 @@ class EPUBGenerator:
             extra_replacements={"INSERT_NUMBER": insert_number},
         )
 
-    def generate_toc_xhtml(self):
+    def generate_toc_xhtml(self) -> str:
         text = self.replace_text(
             '<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">\n'
             "<head>\n"
@@ -303,7 +295,7 @@ class EPUBGenerator:
 
         return text
 
-    def generate_toc_ncx(self):
+    def generate_toc_ncx(self) -> str:
         text = self.replace_text(
             "<?xml version='1.0' encoding='utf-8'?>\n"
             '<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1" xml:lang="en">\n'
@@ -360,7 +352,7 @@ class EPUBGenerator:
         text += "  </navMap>\n" "</ncx>"
         return text
 
-    def generate_cover_page(self):
+    def generate_cover_page(self) -> str:
         return self.replace_text(
             "<?xml version='1.0' encoding='utf-8'?>\n"
             '<html xmlns:epub="http://www.idpf.org/2007/ops" xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">\n'
@@ -376,7 +368,7 @@ class EPUBGenerator:
             "</html>",
         )
 
-    def generate_package_opf(self, combined_chapters):
+    def generate_package_opf(self, combined_chapters: dict[int, list[list[str]]]):
         is_insert = lambda insert: not isinstance(
             insert, (CoverImage, FillerImage, TOCImage, TitlePageImage)
         )
@@ -487,12 +479,12 @@ class EPUBGenerator:
 
     def replace_text(
         self,
-        text,
+        text: str,
         things=[None],
         extra_replacements={},
         start=1,
         conditional_function=None,
-    ):
+    ) -> str:
         result = ""
         counter = start
         for thing in things:
