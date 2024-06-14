@@ -138,8 +138,7 @@ class EPUBGenerator:
                 )
                 previous_is_subpart = True
 
-            with open(self.text_directory / filename, "r") as file:
-                lines = file.readlines()
+            lines = (self.text_directory / filename).read_text().splitlines()
 
             for line in lines:
                 stripped_line = (

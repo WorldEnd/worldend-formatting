@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 
 SUBPART_NUMBER = 0
 
@@ -9,35 +10,33 @@ def main():
         sys.stderr.write("You need to provide a file\n")
         sys.exit(1)
 
-    filename = args[1]
-    if not filename.endswith(".html"):
+    filename = Path(args[1])
+    if not filename.suffix == ".html":
         sys.stderr.write(f"You need to provide a .html file ({filename})\n")
         sys.exit(1)
 
-    markdown_filename = filename[:-5] + ".md"
+    markdown_filename = filename.with_suffix(".md")
 
-    with open(filename, "r") as file:
-        lines = file.readlines()
+    lines = filename.read_text().splitlines()
 
-    with open(markdown_filename, "w") as markdown_file:
-        markdown_file.write(
-            "\n\n".join(
-                print_text(book)
-                for book in replace_sublist(
-                    parse_lines(lines),
-                    [
-                        ("ornament1", ""),
-                        ("ornament2", ""),
-                        ("ornament3", ""),
-                        ("ornament4", ""),
-                        ("ornamentx", ""),
-                        ("ornamentx", ""),
-                        ("ornamentx", ""),
-                    ],
-                    ("ornament", ""),
-                )
+    markdown_filename.write_text(
+        "\n\n".join(
+            print_text(book)
+            for book in replace_sublist(
+                parse_lines(lines),
+                [
+                    ("ornament1", ""),
+                    ("ornament2", ""),
+                    ("ornament3", ""),
+                    ("ornament4", ""),
+                    ("ornamentx", ""),
+                    ("ornamentx", ""),
+                    ("ornamentx", ""),
+                ],
+                ("ornament", ""),
             )
         )
+    )
 
 
 def replace_sublist(lst, sublist, replacement):
