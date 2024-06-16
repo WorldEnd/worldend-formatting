@@ -186,13 +186,17 @@ class ImageInfo(ABC, DebugPrintable):
     hI: int = 0
     vI: int = 1
 
-    def length_to_inches(self, length: str) -> float:
+    def length_to_unit(self, length: str, unit: str) -> float:
+        ureg.define(f"px = inch / {self.px_per_in}")
         quantity = ureg(length)
-        converted_quantity = quantity.to("inch")
+        converted_quantity = quantity.to(unit)
         return converted_quantity.magnitude
 
+    def length_to_inches(self, length: str) -> float:
+        return self.length_to_unit(length, "inch")
+
     def length_to_px(self, length: str) -> int:
-        return round(self.length_to_inches(length) * self.px_per_in)
+        return round(self.length_to_unit(length, "px"))
 
     def parse_yaml(self, node: dict):
         self.image_type = node["image_type"]
@@ -319,7 +323,7 @@ def _canvas_size_px_helper(bleed_size: float, is_two_page: bool, px_per_in: floa
     if not is_two_page:
         # Since we scale the image based on the height, we make the height 
         # slightly smaller if needed for the width to cover the page
-        if (width / height) < (PAPER_W_IN / PAPER_H_IN):
+        while (width / height) < (PAPER_W_IN / PAPER_H_IN):
             height -= 2
         assert (width / height) >= (PAPER_W_IN / PAPER_H_IN), f"{(width, height)}"
     
