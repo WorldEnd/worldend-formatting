@@ -66,9 +66,16 @@ def in_curlies(s):
     return "{" + str(s) + "}"
 
 def length_to_inches(length: str) -> float:
+    # We check it before since you can't make a Quantity without a unit,
+    # and we check after since you can't convert a length without a unit.
+    if not isinstance(length, str):
+        logger.error(f"Invalid length `{length}`. Perhaps you are missing a unit?")
+        sys.exit(1)
     quantity = ureg(length)
-    converted_quantity = quantity.to("inch")
-    return converted_quantity.magnitude
+    if isinstance(quantity, (int, float)):
+        logger.error(f"Invalid length `{quantity}`. Perhaps you are missing a unit?")
+        sys.exit(1)
+    return quantity.to("inch").magnitude
 
 def env_path_prepend(s_old: str, *args) -> str:
     l = list(args)

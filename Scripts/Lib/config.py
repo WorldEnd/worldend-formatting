@@ -20,8 +20,6 @@ from PIL import Image
 
 from .debug_printable import DebugPrintable
 
-ureg = pint.UnitRegistry()
-
 class Book(DebugPrintable):
     chapters: "list[Chapter]"
     directory: Path
@@ -187,10 +185,17 @@ class ImageInfo(ABC, DebugPrintable):
     vI: int = 1
 
     def length_to_unit(self, length: str, unit: str) -> float:
+        ureg = pint.UnitRegistry()
         ureg.define(f"px = inch / {self.px_per_in}")
+
+        # We check it before since you can't make a Quantity without a unit,
+        # and we check after since you can't convert a length without a unit.
+        if not isinstance(length, str):
+            raise ValueError(length)
         quantity = ureg(length)
-        converted_quantity = quantity.to(unit)
-        return converted_quantity.magnitude
+        if isinstance(quantity, (int, float)):
+            raise ValueError(quantity)
+        return quantity.to(unit).magnitude
 
     def length_to_inches(self, length: str) -> float:
         return self.length_to_unit(length, "inch")
