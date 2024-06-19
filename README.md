@@ -41,3 +41,36 @@ python ./Scripts/output_epub.py "./Volumes/Volume 3/" "./Output/"
 
 - The first argument (`"./Volumes/Volume 3/"`) specifies the path to the directory containing the volume.
 - The second argument (`"./Output/"`) is the location for the output file and any temporary working files.
+
+# Screenshots
+## PDF
+**NOTE:** The actual PDF pages are singular; I just displayed them side-by-side.
+
+![Double Page](Screenshots/PDF/doublepage.png)
+
+![First Page of Chapter](Screenshots/PDF/firstpage.png)
+
+![Table of Contents](Screenshots/PDF/toc.png)
+
+![Title Page](Screenshots/PDF/titlepage.png)
+
+![Insert Image](Screenshots/PDF/insert.png)
+
+### Including Gutter
+![Double Page With Gutter](Screenshots/PDF/gutter.png)
+
+## EPUB
+<div align="center">
+  <img src="Screenshots/EPUB/chapterbeginning.png" alt="Beginning of Chapter" width="400px">
+  <img src="Screenshots/EPUB/part.png" alt="Part" width="400px">
+  <img src="Screenshots/EPUB/ornament.png" alt="Ornament" width="400px">
+  <img src="Screenshots/EPUB/toc.png" alt="Table of Contents" width="400px">
+</div>
+
+### Kindle
+<div align="center">
+  <img src="Screenshots/EPUB/Kindle/chapterbeginning.png" alt="Beginning of Chapter" width="400px">
+  <img src="Screenshots/EPUB/Kindle/toc.png" alt="Table of Contents" width="400px">
+  <img src="Screenshots/EPUB/Kindle/home.png" alt="Home Page" width="400px">
+  <img src="Screenshots/EPUB/Kindle/library.png" alt="Library Page" width="400px">
+</div>
