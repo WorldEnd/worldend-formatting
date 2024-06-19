@@ -26,8 +26,8 @@ def main():
     RULE = "##HR##"
     
     parser = argparse.ArgumentParser(
-                        prog='markdown_html_tags',
-                        description='Convert the tags * tags in markdown to HTML tags')
+                        prog="markdown_html_tags",
+                        description="Convert the tags * tags in markdown to HTML tags")
     
     parser.add_argument("input_file")
     parser.add_argument("output_file")
@@ -59,5 +59,5 @@ def main():
         
     
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -23,13 +23,13 @@ from pylatexenc.latexencode import (RULE_REGEX, UnicodeToLatexConversionRule,
                                     UnicodeToLatexEncoder)
 
 formatter = colorlog.ColoredFormatter(
-    '%(log_color)s%(levelname)s: %(message)s',
+    "%(log_color)s%(levelname)s: %(message)s",
     log_colors={
-        'DEBUG': 'cyan',
-        'INFO': 'green',
-        'WARNING': 'yellow',
-        'ERROR': 'red',
-        'CRITICAL': 'bold_red',
+        "DEBUG": "cyan",
+        "INFO": "green",
+        "WARNING": "yellow",
+        "ERROR": "red",
+        "CRITICAL": "bold_red",
     }
 )
 
@@ -42,8 +42,8 @@ logger.setLevel(logging.INFO)
 
 ureg = pint.UnitRegistry()
 
-xelatex_default_miktex = 'xelatex -interaction={MODE} -enable-installer -output-directory={OUTPUT_DIRECTORY} -job-name={JOB_NAME} {TEX_FILE}'
-xelatex_default_texlive = 'xelatex -interaction={MODE} -output-directory={OUTPUT_DIRECTORY} -jobname={JOB_NAME} {TEX_FILE}'
+xelatex_default_miktex = "xelatex -interaction={MODE} -enable-installer -output-directory={OUTPUT_DIRECTORY} -job-name={JOB_NAME} {TEX_FILE}"
+xelatex_default_texlive = "xelatex -interaction={MODE} -output-directory={OUTPUT_DIRECTORY} -jobname={JOB_NAME} {TEX_FILE}"
 
 def get_xelatex_command():
     try:
@@ -133,12 +133,12 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
         conversion_rules = [
             UnicodeToLatexConversionRule(RULE_REGEX, 
                 [(regex.compile(k), v) for k, v in regex_replacements.items()],
-                replacement_latex_protection='none'),
-            'defaults'
+                replacement_latex_protection="none"),
+            "defaults"
         ]
         get_latex_converter.converter = UnicodeToLatexEncoder(
             conversion_rules=conversion_rules, 
-            replacement_latex_protection = 'braces-all')
+            replacement_latex_protection = "braces-all")
 
     return get_latex_converter.converter
 
@@ -273,7 +273,7 @@ def convert_book(
         for arg in shlex.split(xelatex_command_line)
     ]
 
-    logger.debug(' '.join(args))
+    logger.debug(" ".join(args))
 
     env = os.environ.copy()
 
@@ -309,7 +309,7 @@ def get_page_numbers(file_path: Path):
     page_numbers = []
     content = file_path.read_text()
     for line in content.splitlines():
-        match = regex.match(r'ChapterPageNumber:\s*(\d+)', line)
+        match = regex.match(r"ChapterPageNumber:\s*(\d+)", line)
         if match:
             page_numbers.append(int(match.group(1)))
         else:
@@ -405,8 +405,8 @@ def cv2_to_pil(img, from_space="BGR", to_space="RGB"):
 
 def main():
     parser = argparse.ArgumentParser(
-                        prog='md_to_tex',
-                        description='Converts the input .md files to .tex files.',
+                        prog="md_to_tex",
+                        description="Converts the input .md files to .tex files.",
                         formatter_class=ColorHelpFormatter,
                         add_help=False)
     
@@ -427,9 +427,9 @@ def main():
     # Custom action for `--print-mode`
     class PrintMode(argparse.Action):
         def __call__(self, parser, namespace, values, option_string=None):
-            setattr(namespace, 'bleed_size', "0.125in")
-            setattr(namespace, 'gutter_size', "0.15in")
-            setattr(namespace, 'no_cover', True)
+            setattr(namespace, "bleed_size", "0.125in")
+            setattr(namespace, "gutter_size", "0.15in")
+            setattr(namespace, "no_cover", True)
 
     parser.add_argument("-p", "--print-mode", action=PrintMode, nargs=0,
                         help=f"Activate print mode, short for `{colors.faint("-b 0.125in -g 0.15in -n")}`")
@@ -458,5 +458,5 @@ def main():
 
     result = convert_book(book_config, images_config, output_dir, work_dir, length_to_inches(args.bleed_size), args.dont_print_images, args.skip_images, xelatex_command, args.no_cover, length_to_inches(args.gutter_size))
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

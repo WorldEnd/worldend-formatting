@@ -6,8 +6,8 @@ import itertools
 
 def main():
     parser = argparse.ArgumentParser(
-                        prog='single_unified',
-                        description='Converts one .md file to multiple, and vis versa')
+                        prog="single_unified",
+                        description="Converts one .md file to multiple, and vice versa")
     
     parser.add_argument("command", choices=["split", "combine"])
     parser.add_argument("input")
@@ -51,5 +51,5 @@ def main():
             
         output_file.write_text("\n\n".join(lines))
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
