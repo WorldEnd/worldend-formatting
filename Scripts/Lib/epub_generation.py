@@ -260,7 +260,8 @@ class EPUBGenerator:
             "</head>\n"
             "<body>\n"
             '<section id="insert{INSERT_NUMBER:03}" epub:type="frontmatter titlepage">\n'
-            '<div class="image_full"><img src="images/Art_insert{INSERT_NUMBER:03}.jpg" alt="Book Title Page"/>\n'
+            '<div class="image_full">\n'
+            '<img src="images/Art_insert{INSERT_NUMBER:03}.jpg" alt="Book Title Page"/>\n'
             "</div>\n"
             "</section>\n"
             "</body>\n"
@@ -374,7 +375,7 @@ class EPUBGenerator:
         )
 
         text = self.replace_text(
-            ' <package xmlns="http://www.idpf.org/2007/opf" version="3.0" xml:lang="en" unique-identifier="pub-id">\n'
+            '<package xmlns="http://www.idpf.org/2007/opf" version="3.0" xml:lang="en" unique-identifier="pub-id">\n'
             '  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">\n'
             '    <dc:title id="id">WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</dc:title>\n'
             '    <dc:creator id="id-1">Akira Kareno</dc:creator>\n'
