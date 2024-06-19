@@ -84,6 +84,10 @@
   { \providecommand{\SpanEnvClose}{} } % begin command
   { \SpanEnvClose } % end command
 
+\newenvironment{realcenter}
+ { \parskip=0pt\par\nopagebreak\centering }
+ { \par\noindent\ignorespacesafterend }
+
 
 % ======= Header =======
 \usepackage{fancyhdr}
@@ -133,13 +137,14 @@
 % ======= Content Commands =======
 \newcommand{\icon}{
   % The icon takes up 3 lines
-  \begin{center}
-  \vphantom{1}
-  
-  \vphantom{2}\raisebox{-0.07in}[0em][0em]{\includegraphics[height=0.22in]{../Images/ornament.png}}\vphantom{2}
-  
-  \vphantom{3}
-  \end{center}
+  % We use `realcenter` since `center` adds vertical space
+  \begin{realcenter}
+    \vphantom{1}
+
+    \vphantom{2}\raisebox{-0.07in}[0em][0em]{\includegraphics[height=0.22in]{../Images/ornament.png}}\vphantom{2}
+
+    \vphantom{3}
+  \end{realcenter}
 }
 
 \newcommand{\sectionTitleStyle}{\athiti\fontsize{11}{11}\fontseries{sb}\selectfont}
