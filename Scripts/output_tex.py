@@ -246,8 +246,8 @@ def convert_book(
 
     config_lines = []
     config_lines.append(r"\newcommand{\volumeNumberHeaderText}{Vol." + str(book_config.volume) + "}")
-    config_lines.append(rf"\newcommand{{\bleedSize}}{in_curlies((str(bleed_size) + "in"))}")
-    config_lines.append(rf"\newcommand{{\gutterSize}}{in_curlies(str(gutter_size) + "in")}")
+    config_lines.append(rf"\newcommand{{\bleedSize}}{in_curlies((str(bleed_size) + 'in'))}")
+    config_lines.append(rf"\newcommand{{\gutterSize}}{in_curlies(str(gutter_size) + 'in')}")
     if dont_print_images:
         config_lines.append(r"\providecommand{\dontPrintImages}{}")
 
@@ -432,7 +432,7 @@ def main():
             setattr(namespace, "no_cover", True)
 
     parser.add_argument("-p", "--print-mode", action=PrintMode, nargs=0,
-                        help=f"Activate print mode, short for `{colors.faint("-b 0.125in -g 0.15in -n")}`")
+                        help=f"Activate print mode, short for `{colors.faint('-b 0.125in -g 0.15in -n')}`")
     
     args = parser.parse_args()
 
