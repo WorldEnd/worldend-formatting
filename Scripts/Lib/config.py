@@ -1,7 +1,6 @@
 import itertools
 import math
 import pint
-import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from pathlib import Path
@@ -10,22 +9,24 @@ from typing import Iterator, Literal
 try:
     from typing import override
 except ImportError:
-    def override(f): 
+
+    def override(f):
         return f
+
 
 import numpy as np
 import oyaml as yaml
-from numpy.typing import NDArray
 from PIL import Image
 
 from .debug_printable import DebugPrintable
+
 
 class Book(DebugPrintable):
     chapters: "list[Chapter]"
     directory: Path
     volume: int
     isbn: str
-    
+
     # @property
     # def parts(self):
     #     return itertools.chain(ch.parts for ch in self.chapters)
@@ -53,9 +54,10 @@ class Book(DebugPrintable):
             chapter.number = i
             chapter.parse_yaml(c)
             self.chapters.append(chapter)
-            
+
     def text_directory(self):
         return self.directory / "Text"
+
 
 class Chapter(DebugPrintable):
     title: str
@@ -63,7 +65,7 @@ class Chapter(DebugPrintable):
     parts: "list[Part]"
     number: int
     parent: Book
-    
+
     def parse_yaml(self, node: dict):
         self.title = node["title"]
         self.subtitle = node["subtitle"]
@@ -74,25 +76,26 @@ class Chapter(DebugPrintable):
             part.number = i
             part.parse_yaml(p)
             self.parts.append(part)
-    
+
     def base_filename(self):
         return str(self.number)
-    
+
     def is_single_part_chapter(self):
         return len(self.parts) == 1
+
 
 class Part(DebugPrintable):
     title: str | None
     parent: Chapter
     number: int
-    
+
     @property
     def grandparent(self) -> Book:
         return self.parent.parent
-    
+
     def parse_yaml(self, node: dict):
         self.title = node["title"]
-    
+
     def base_filename(self):
         if self.parent.is_single_part_chapter():
             return self.parent.base_filename()
@@ -102,17 +105,19 @@ class Part(DebugPrintable):
     def text_filepath(self):
         return self.grandparent.text_directory() / (self.base_filename() + ".md")
 
+
 def parse_book_config(directory):
     directory = Path(directory)
     config_file = directory / "config.yaml"
-    
+
     if not directory.exists():
         print(f"Error: Input directory does not exist: '{directory}'")
         return None
-    
+
     book = Book.from_file(config_file)
-    
+
     return book
+
 
 class ImagesConfig(DebugPrintable):
     insert_images: "OrderedDict[str, ImageInfo]"
@@ -137,12 +142,12 @@ class ImagesConfig(DebugPrintable):
         for k, v in node["insert"].items():
             img = self.image_from_yaml(v, k, "Insert")
             self.insert_images[img.image_title()] = img
-            
+
         self.chapter_images = OrderedDict()
         for k, v in node["chapter"].items():
             img = self.image_from_yaml(v, k, "Chapter")
             self.chapter_images[img.image_title()] = img
-            
+
     def image_from_yaml(self, node, filename, subdirectory) -> "ImageInfo":
         match node["image_type"]:
             case "single":
@@ -166,21 +171,25 @@ class ImagesConfig(DebugPrintable):
         return image
 
     def all_images_iter(self) -> Iterator["ImageInfo"]:
-        return itertools.chain(self.insert_images.values(), self.chapter_images.values())
+        return itertools.chain(
+            self.insert_images.values(), self.chapter_images.values()
+        )
+
 
 PAPER_W_IN = 5.5
 PAPER_H_IN = 8.25
 
+
 class ImageInfo(ABC, DebugPrintable):
-    image_type: Literal['single', 'double']
+    image_type: Literal["single", "double"]
     height_inches: float
     offset_px: tuple[int, int]
 
     parent: ImagesConfig
-    
+
     _filename: str
     _subdir: str
-    
+
     hI: int = 0
     vI: int = 1
 
@@ -205,7 +214,7 @@ class ImageInfo(ABC, DebugPrintable):
 
     def parse_yaml(self, node: dict):
         self.image_type = node["image_type"]
-        
+
         self.height_inches = PAPER_H_IN
         if "height" in node:
             self.height_inches = self.length_to_inches(node["height"])
@@ -220,37 +229,37 @@ class ImageInfo(ABC, DebugPrintable):
     @abstractmethod
     def canvas_size_px(self, bleed_size: float) -> tuple[int, int]:
         pass
-    
+
     def image_title(self) -> str:
         return Path(self._filename).stem
-    
+
     def image_filename(self) -> str:
         return self._filename
 
     def relative_image_path(self) -> Path:
         return Path(self._subdir, self._filename)
-    
+
     def absolute_image_path(self) -> Path:
         return self.parent.directory / self.relative_image_path()
-    
+
     def padding_lrtb(self, bleed_size: float) -> tuple[int, int, int, int]:
         canvas_w, canvas_h = self.canvas_size_px(bleed_size)
         img_w, img_h = self.size_px
         offset_w, offset_h = self.offset_px
-        
-        assert ((canvas_w - img_w) % 2 == 0), f"({canvas_w}, {img_w})"
-        assert ((canvas_h - img_h) % 2 == 0), f"({canvas_h}, {img_h})"
-        
+
+        assert (canvas_w - img_w) % 2 == 0, f"({canvas_w}, {img_w})"
+        assert (canvas_h - img_h) % 2 == 0, f"({canvas_h}, {img_h})"
+
         base_padding_w = (canvas_w - img_w) // 2
         base_padding_h = (canvas_h - img_h) // 2
-        
+
         left = base_padding_w + offset_w
         right = base_padding_w - offset_w
         top = base_padding_h + offset_h
         bottom = base_padding_h - offset_h
-        
+
         return left, right, top, bottom
-        
+
     @property
     def size_px(self):
         if not hasattr(self, "_size_px") or self._size_px is None:
@@ -261,7 +270,7 @@ class ImageInfo(ABC, DebugPrintable):
     @property
     def width_px(self) -> int:
         return self.size_px[0]
-    
+
     @property
     def height_px(self) -> int:
         return self.size_px[1]
@@ -270,20 +279,26 @@ class ImageInfo(ABC, DebugPrintable):
     def px_per_in(self) -> float:
         return self.height_px / self.height_inches
 
-class SingleImage(ImageInfo):    
+
+class SingleImage(ImageInfo):
     @override
     def canvas_size_px(self, bleed_size: float) -> tuple[int, int]:
-        return _canvas_size_px_helper(bleed_size, False, self.px_per_in,
-                                      self.width_px, self.height_px)
+        return _canvas_size_px_helper(
+            bleed_size, False, self.px_per_in, self.width_px, self.height_px
+        )
+
 
 class TitlePageImage(SingleImage):
     pass
 
+
 class CoverImage(SingleImage):
     pass
 
+
 class FillerImage(SingleImage):
     pass
+
 
 class DoubleImage(ImageInfo):
     overlap_px: int
@@ -297,20 +312,35 @@ class DoubleImage(ImageInfo):
 
     @override
     def canvas_size_px(self, bleed_size: float) -> tuple[int, int]:
-        return _canvas_size_px_helper(bleed_size, True, self.px_per_in, self.width_px,
-                                      self.height_px, self.overlap_px)
+        return _canvas_size_px_helper(
+            bleed_size,
+            True,
+            self.px_per_in,
+            self.width_px,
+            self.height_px,
+            self.overlap_px,
+        )
+
 
 class TOCImage(DoubleImage):
     pass
 
-def _canvas_size_px_helper(bleed_size: float, is_two_page: bool, px_per_in: float, width_px: int, height_px: int, overlap_px: int = 0) -> tuple[int, int]:
+
+def _canvas_size_px_helper(
+    bleed_size: float,
+    is_two_page: bool,
+    px_per_in: float,
+    width_px: int,
+    height_px: int,
+    overlap_px: int = 0,
+) -> tuple[int, int]:
     if is_two_page:
-        base_page_size_in = np.array([PAPER_W_IN * 2., PAPER_H_IN])
-    else: 
+        base_page_size_in = np.array([PAPER_W_IN * 2.0, PAPER_H_IN])
+    else:
         base_page_size_in = np.array([PAPER_W_IN, PAPER_H_IN])
     full_page_size_in = base_page_size_in + (2 * bleed_size)
     full_page_size_px = full_page_size_in * px_per_in
-    
+
     # We round the canvas size down, so that the image is comparatively
     # larger, and thus we never expose blank space on properly-sized images
     # We may reduce padding even more to ensure we can center exactly
@@ -326,22 +356,23 @@ def _canvas_size_px_helper(bleed_size: float, is_two_page: bool, px_per_in: floa
         height = height - 1
 
     if not is_two_page:
-        # Since we scale the image based on the height, we make the height 
+        # Since we scale the image based on the height, we make the height
         # slightly smaller if needed for the width to cover the page
         while (width / height) < (PAPER_W_IN / PAPER_H_IN):
             height -= 2
         assert (width / height) >= (PAPER_W_IN / PAPER_H_IN), f"{(width, height)}"
-    
+
     return width, height
+
 
 def parse_image_config(directory):
     directory = Path(directory)
     config_file = directory / "config.yaml"
-    
+
     if not directory.exists():
         print(f"Error: Input directory does not exist: '{directory}'")
         return None
-    
+
     config = ImagesConfig.from_file(config_file)
-    
+
     return config
