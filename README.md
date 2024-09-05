@@ -35,12 +35,25 @@ It is possible to tweak the print options alongside `--print-mode` by appending 
 To export to EPUB, run `Scripts/output_epub.py`:
 
 ``` sh
-
 python ./Scripts/output_epub.py "./Volumes/Volume 3/" "./Output/"
 ```
 
 - The first argument (`"./Volumes/Volume 3/"`) specifies the path to the directory containing the volume.
 - The second argument (`"./Output/"`) is the location for the output file and any temporary working files.
+
+# Changes from Orlandri Translation
+- Use Yen Press names
+- Insert and chapter images are in English
+- Minor edits to the text
+- Follow the Yen Press format as closely as possible, including:
+  - Indented paragraphs
+  - Table of Contents (TOC)
+  - PDF font matches that of physical volumes
+  - Spacing matches Yen Press or differs by no more than 2 millimeters
+  - No space after ellipses (…)
+  - No space around em dashes (—)
+  - Capitalization for stutters matches Yen Press (e.g., Wi-widow)
+  - Contractions use closing apostrophes (’)
 
 # Screenshots
 ## PDF
