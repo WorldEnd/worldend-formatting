@@ -25,7 +25,7 @@ If you want to generate the PDF for printing in a perfect-bound book, there are 
 - `-g` (`--gutter-size`): Specify the gutter size.
 - `-n` (`--no-cover`): Do not include cover.
  
-By default, the bleed size is 0in, gutter size is 0in, and cover is included.
+By default, the bleed size is 0 in, gutter size is 0 in, and cover is included.
 
 For convenience, `-p` (`--print-mode`) is provided, which is short for `-b 0.125in -g 0.15in -n`.
 
