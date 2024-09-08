@@ -59,7 +59,7 @@ def convert_book(
     if os.path.exists(work_dir):
         shutil.rmtree(work_dir)
     shutil.copytree(common_dir() / "ePub", work_dir)
-    output_stem = f"WorldEnd2 v{book_config.volume:02}"
+    output_stem = f"WorldEnd2_v{book_config.volume:02}"
 
     output_file = output_dir / (output_stem + ".epub")
     process_images(image_config, images_output_directory, book_config.isbn)

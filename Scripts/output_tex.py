@@ -294,7 +294,7 @@ def convert_book(
 
     intermediate_output_directory = work_dir / "CompilationDir"
     os.makedirs(intermediate_output_directory, exist_ok=True)
-    output_stem = f"WorldEnd2 v{book_config.volume:02}"
+    output_stem = f"WorldEnd2_v{book_config.volume:02}"
     main_tex_file = common_dir() / "TeX" / "WorldEnd2_Common.tex"
     tex_inputs = env_path_prepend(os.environ.get("TEXINPUTS"), work_dir, ".")
     tex_inputs_no_images = env_path_prepend(
