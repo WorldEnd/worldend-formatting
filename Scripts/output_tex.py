@@ -15,12 +15,23 @@ import numpy as np
 import pint
 import regex
 from argparse_color_formatter import ColorHelpFormatter
-from Lib.config import (Book, Chapter, ImageInfo, ImagesConfig, Part, TOCImage,
-                        parse_book_config, parse_image_config)
+from Lib.config import (
+    Book,
+    Chapter,
+    ImageInfo,
+    ImagesConfig,
+    Part,
+    TOCImage,
+    parse_book_config,
+    parse_image_config,
+)
 from Lib.project_dirs import common_dir
 from PIL import Image, ImageDraw, ImageFont
-from pylatexenc.latexencode import (RULE_REGEX, UnicodeToLatexConversionRule,
-                                    UnicodeToLatexEncoder)
+from pylatexenc.latexencode import (
+    RULE_REGEX,
+    UnicodeToLatexConversionRule,
+    UnicodeToLatexEncoder,
+)
 
 formatter = colorlog.ColoredFormatter(
     "%(log_color)s%(levelname)s: %(message)s",
@@ -30,7 +41,7 @@ formatter = colorlog.ColoredFormatter(
         "WARNING": "yellow",
         "ERROR": "red",
         "CRITICAL": "bold_red",
-    }
+    },
 )
 
 handler = logging.StreamHandler()
@@ -45,9 +56,12 @@ ureg = pint.UnitRegistry()
 xelatex_default_miktex = "xelatex -interaction={MODE} -enable-installer -output-directory={OUTPUT_DIRECTORY} -job-name={JOB_NAME} {TEX_FILE}"
 xelatex_default_texlive = "xelatex -interaction={MODE} -output-directory={OUTPUT_DIRECTORY} -jobname={JOB_NAME} {TEX_FILE}"
 
+
 def get_xelatex_command():
     try:
-        xelatex_version = subprocess.check_output(["xelatex", "--version"], stderr=subprocess.STDOUT, text=True)
+        xelatex_version = subprocess.check_output(
+            ["xelatex", "--version"], stderr=subprocess.STDOUT, text=True
+        )
 
         if "MiKTeX" in xelatex_version:
             logger.debug("MiKTeX xelatex detected")
@@ -55,15 +69,19 @@ def get_xelatex_command():
         elif "TeX Live" in xelatex_version:
             logger.debug("TeX Live xelatex detected")
             return xelatex_default_texlive
-        else: # All others, currently the same default as for Tex Live
+        else:  # All others, currently the same default as for Tex Live
             logger.debug("Unknown TeX Distribution - Defaulting to TeX Live")
             return xelatex_default_texlive
     except Exception as e:
-        logger.critical(f"An error occurred while trying to detect the TeX distribution: {e}")
+        logger.critical(
+            f"An error occurred while trying to detect the TeX distribution: {e}"
+        )
         sys.exit(1)
+
 
 def in_curlies(s):
     return "{" + str(s) + "}"
+
 
 def length_to_inches(length: str) -> float:
     # We check it before since you can't make a Quantity without a unit,
@@ -77,13 +95,15 @@ def length_to_inches(length: str) -> float:
         sys.exit(1)
     return quantity.to("inch").magnitude
 
+
 def env_path_prepend(s_old: str, *args) -> str:
     l = list(args)
     if s_old and not s_old.isspace():
         l.append(s_old)
     else:
-        l.append("") # In case TEXINPUTS is unset, retain the last `:`
+        l.append("")  # In case TEXINPUTS is unset, retain the last `:`
     return os.pathsep.join(str(x) for x in l)
+
 
 def get_latex_converter() -> UnicodeToLatexEncoder:
     if not hasattr(get_latex_converter, "converter"):
@@ -95,54 +115,53 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
         # Command to run at the beginning of the span, and command to run
         # at the end. Use \bgroup and \egroup instead of { and } if you need to
         # enclose something between the start and end command
-        def span_replacement(start_command, end_command = ""):
-            return (r"\\begin{SpanEnv}\\renewcommand{\\SpanEnvClose}{" 
-                    + end_command + "}" + start_command)
-        
+        def span_replacement(start_command, end_command=""):
+            return (
+                r"\\begin{SpanEnv}\\renewcommand{\\SpanEnvClose}{"
+                + end_command
+                + "}"
+                + start_command
+            )
+
         regex_replacements = {
             rf"{after_wchar}(?:(?:\.\.\.)|(?:…)){before_wchar}": r"{\\EllipsisSplittable}",
             r"(?:(?:\.\.\.)|(?:…))": r"{\\Ellipsis}",
-
             rf"</span>": r"\\end{SpanEnv}",
-
             rf'<span class="v-centered-page">': span_replacement(
-                r"\\newpage\\hspace{0pt}\\vfill ", 
-                r" \\vfill\\hspace{0pt}\\newpage"),
-            
+                r"\\newpage\\hspace{0pt}\\vfill ", r" \\vfill\\hspace{0pt}\\newpage"
+            ),
             rf'<span class="page-break"[ ]?/>': r"\\newpage",
-
-            r"<i>":   r"\\textit{",
-            r"</i>":  r"}",
-            r"<em>":  r"\\textit{",
+            r"<i>": r"\\textit{",
+            r"</i>": r"}",
+            r"<em>": r"\\textit{",
             r"</em>": r"}",
-
-            r"<u>":  r"\\ul{",
+            r"<u>": r"\\ul{",
             r"</u>": r"}",
-            
-            r"<tt>":  r"\\texttt{",
-            r"</tt>": r"}",            
-
-            r"<b>":       r"\\textbf{",
-            r"</b>":      r"}",
-            r"<strong>":  r"\\textbf{",
+            r"<tt>": r"\\texttt{",
+            r"</tt>": r"}",
+            r"<b>": r"\\textbf{",
+            r"</b>": r"}",
+            r"<strong>": r"\\textbf{",
             r"</strong>": r"}",
-            
             r"<br(?:[ ]?/)?>": r"\\",
         }
-        
+
         conversion_rules = [
-            UnicodeToLatexConversionRule(RULE_REGEX, 
+            UnicodeToLatexConversionRule(
+                RULE_REGEX,
                 [(regex.compile(k), v) for k, v in regex_replacements.items()],
-                replacement_latex_protection="none"),
-            "defaults"
+                replacement_latex_protection="none",
+            ),
+            "defaults",
         ]
         get_latex_converter.converter = UnicodeToLatexEncoder(
-            conversion_rules=conversion_rules, 
-            replacement_latex_protection = "braces-all")
+            conversion_rules=conversion_rules, replacement_latex_protection="braces-all"
+        )
 
     return get_latex_converter.converter
 
-def format_text(text: str) -> str: 
+
+def format_text(text: str) -> str:
     converted_text = get_latex_converter().unicode_to_latex(text)
 
     def transform_paragraph(p: str) -> str:
@@ -155,36 +174,43 @@ def format_text(text: str) -> str:
     transformed_text = (transform_paragraph(p) for p in split_text)
     filtered_text = list(filter(lambda x: x and not x.isspace(), transformed_text))
     for i in range(len(filtered_text)):
-        if (filtered_text[i] == r"\icon" 
-        and i + 1 < len(filtered_text) 
-        and filtered_text[i + 1] != r"\icon"):
+        if (
+            filtered_text[i] == r"\icon"
+            and i + 1 < len(filtered_text)
+            and filtered_text[i + 1] != r"\icon"
+        ):
             filtered_text[i + 1] = r"\noindent" + "\n" + filtered_text[i + 1]
 
     text = "\n\n".join(filtered_text)
 
     text = text.replace("\n\n" + r"\\", "\n" + r"\\")
-    
+
     m = regex.search(r"<[^\r\n<>]+>", text)
     if m is not None:
-        logger.warning(f"Possible unprocessed HTML tag `{m.group(0)}`. " +
-            "If this is an error, processing for this tag needs to be " +
-            "added in `mid_to_tex.py:format_text`")
+        logger.warning(
+            f"Possible unprocessed HTML tag `{m.group(0)}`. "
+            + "If this is an error, processing for this tag needs to be "
+            + "added in `mid_to_tex.py:format_text`"
+        )
 
     return text
+
 
 def convert_part_text(part: Part, work_dir: Path, content_lines: list[str]):
     output_filename = work_dir / (part.base_filename() + ".tex")
     input_text = part.text_filepath().read_text()
 
     output_text = format_text(input_text)
-    
+
     output_filename.write_text(output_text)
 
-    content_lines.append(fr"\insertPartText{in_curlies(output_filename.name)}")
+    content_lines.append(rf"\insertPartText{in_curlies(output_filename.name)}")
+
 
 def convert_part(part: Part, work_dir: Path, content_lines: list[str]):
-    content_lines.append(fr"\beginPart{in_curlies(f'{part.number}. {part.title}')}")
+    content_lines.append(rf"\beginPart{in_curlies(f'{part.number}. {part.title}')}")
     convert_part_text(part, work_dir, content_lines)
+
 
 def convert_chapter(chapter: Chapter, work_dir: Path, content_lines: list[str]):
     part1 = chapter.parts[0]
@@ -192,15 +218,20 @@ def convert_chapter(chapter: Chapter, work_dir: Path, content_lines: list[str]):
     if part1.title is not None:
         part_title_string = f"[{part1.number}. {part1.title}]"
 
-    content_lines.append(fr"\beginChapter{part_title_string}{in_curlies(chapter.title)}{in_curlies(chapter.subtitle)}")
+    content_lines.append(
+        rf"\beginChapter{part_title_string}{in_curlies(chapter.title)}{in_curlies(chapter.subtitle)}"
+    )
     convert_part_text(part1, work_dir, content_lines)
-    
+
     for part in itertools.islice(chapter.parts, 1, None):
         convert_part(part, work_dir, content_lines)
 
+
 def image_latex_command(img_info: ImageInfo, no_cover: bool) -> str:
-    image_path_string = str(PurePosixPath(img_info.relative_image_path().with_suffix(".png")))
-    if (img_info.image_type == "double" or img_info.image_type == "toc"):
+    image_path_string = str(
+        PurePosixPath(img_info.relative_image_path().with_suffix(".png"))
+    )
+    if img_info.image_type == "double" or img_info.image_type == "toc":
         return rf"\insertDoubleImage{in_curlies(image_path_string)}"
     elif (
         img_info.image_type == "single"
@@ -219,6 +250,7 @@ def image_latex_command(img_info: ImageInfo, no_cover: bool) -> str:
         )
     else:
         raise AssertionError(img_info.image_type)
+
 
 def convert_book(
     book_config: Book,
@@ -245,9 +277,15 @@ def convert_book(
     (work_dir / "content.tex").write_text(content_text)
 
     config_lines = []
-    config_lines.append(r"\newcommand{\volumeNumberHeaderText}{Vol." + str(book_config.volume) + "}")
-    config_lines.append(rf"\newcommand{{\bleedSize}}{in_curlies((str(bleed_size) + 'in'))}")
-    config_lines.append(rf"\newcommand{{\gutterSize}}{in_curlies(str(gutter_size) + 'in')}")
+    config_lines.append(
+        r"\newcommand{\volumeNumberHeaderText}{Vol." + str(book_config.volume) + "}"
+    )
+    config_lines.append(
+        rf"\newcommand{{\bleedSize}}{in_curlies((str(bleed_size) + 'in'))}"
+    )
+    config_lines.append(
+        rf"\newcommand{{\gutterSize}}{in_curlies(str(gutter_size) + 'in')}"
+    )
     if dont_print_images:
         config_lines.append(r"\providecommand{\dontPrintImages}{}")
 
@@ -259,9 +297,13 @@ def convert_book(
     output_stem = f"WorldEnd2 v{book_config.volume:02}"
     main_tex_file = common_dir() / "TeX" / "WorldEnd2_Common.tex"
     tex_inputs = env_path_prepend(os.environ.get("TEXINPUTS"), work_dir, ".")
-    tex_inputs_no_images = env_path_prepend(tex_inputs, common_dir() / "TeX" / "Optional" / "NoImages")
+    tex_inputs_no_images = env_path_prepend(
+        tex_inputs, common_dir() / "TeX" / "Optional" / "NoImages"
+    )
 
-    page_numbers_file = intermediate_output_directory / f"{output_stem}.page-numbers.txt"
+    page_numbers_file = (
+        intermediate_output_directory / f"{output_stem}.page-numbers.txt"
+    )
 
     args = [
         arg.format(
@@ -282,7 +324,7 @@ def convert_book(
     # we're going to implement auto-generation of the table of contents with
     # correct page numbers, which requires a first pass to actually determine
     # the page numbers.
-    # The first pass doesn't take very long since we don't print the images.    
+    # The first pass doesn't take very long since we don't print the images.
 
     logger.info("==Starting xelatex (first pass)==")
     env["TEXINPUTS"] = tex_inputs_no_images
@@ -305,6 +347,7 @@ def convert_book(
     else:
         logger.error("No PDF file generated")
 
+
 def get_page_numbers(file_path: Path):
     page_numbers = []
     content = file_path.read_text()
@@ -317,6 +360,7 @@ def get_page_numbers(file_path: Path):
             raise ValueError(f"Error: Invalid line in page-numbers file: `{line}`")
     return page_numbers
 
+
 def draw_page_numbers(page_numbers: list[int], toc_path: Path, output_path: Path):
     padded_numbers = [str(num - 3).zfill(3) for num in page_numbers]
 
@@ -324,7 +368,12 @@ def draw_page_numbers(page_numbers: list[int], toc_path: Path, output_path: Path
 
     draw = ImageDraw.Draw(image)
     font = ImageFont.truetype(
-        common_dir() / "TeX" / "Fonts" / "HomepageBaukasten-Book" / "HomepageBaukasten-Book-Modified.ttf", size=42
+        common_dir()
+        / "TeX"
+        / "Fonts"
+        / "HomepageBaukasten-Book"
+        / "HomepageBaukasten-Book-Modified.ttf",
+        size=42,
     )
 
     text_color = (0, 0, 0)
@@ -354,7 +403,10 @@ def draw_page_numbers(page_numbers: list[int], toc_path: Path, output_path: Path
 
     image.close()
 
-def generate_images(config: ImagesConfig, work_dir: Path, page_numbers: list[int], bleed_size: float):
+
+def generate_images(
+    config: ImagesConfig, work_dir: Path, page_numbers: list[int], bleed_size: float
+):
     for image_info in config.all_images_iter():
         input_path = image_info.absolute_image_path()
         output_path = (work_dir / image_info.relative_image_path()).with_suffix(".png")
@@ -363,10 +415,10 @@ def generate_images(config: ImagesConfig, work_dir: Path, page_numbers: list[int
         if isinstance(image_info, TOCImage):
             draw_page_numbers(page_numbers, input_path, output_path)
             input_path = output_path
-        
-        img = cv2.imread(str(input_path)) 
+
+        img = cv2.imread(str(input_path))
         logger.debug(np.shape(img))
-        
+
         l, r, t, b = image_info.padding_lrtb(bleed_size)
         logger.debug((l, r, t, b))
         mask = np.ones((img.shape[0], img.shape[1]), dtype=np.uint8) * 255
@@ -376,21 +428,25 @@ def generate_images(config: ImagesConfig, work_dir: Path, page_numbers: list[int
         logger.debug(img.dtype)
         logger.debug(img.shape)
 
-        cv2.setRNGSeed(42) # For consistent generation between runs
+        cv2.setRNGSeed(42)  # For consistent generation between runs
         img = cv2.inpaint(img, mask, 2, cv2.INPAINT_TELEA)
-        
+
         logger.debug(output_path)
         cv2.imwrite(str(output_path), img)
-    
+
+
 def crop_and_pad_mat(mat, pad_crop_values):
-    pad_crop_values = tuple(pad_crop_values) + (((0, 0),) * (len(mat.shape) - len(pad_crop_values)))
-    
+    pad_crop_values = tuple(pad_crop_values) + (
+        ((0, 0),) * (len(mat.shape) - len(pad_crop_values))
+    )
+
     pad_values = tuple((max(0, a), max(0, b)) for a, b in pad_crop_values)
     crop_values = tuple((max(0, -a), max(0, -b)) for a, b in pad_crop_values)
-    
+
     mat = np.pad(mat, pad_values)
     mat = crop_mat(mat, crop_values)
     return mat
+
 
 def crop_mat(mat, crop_values):
     crop_values = tuple(crop_values) + (((0, 0),) * (len(mat.shape) - len(crop_values)))
@@ -398,31 +454,69 @@ def crop_mat(mat, crop_values):
     ret = mat.__getitem__(slices)
     return ret
 
+
 def cv2_to_pil(img, from_space="BGR", to_space="RGB"):
     flag = getattr(cv2, f"COLOR_{from_space}2{to_space}")
     converted = cv2.cvtColor(img, flag)
     return Image.fromarray(converted, to_space)
 
+
 def main():
     parser = argparse.ArgumentParser(
-                        prog="md_to_tex",
-                        description="Converts the input .md files to .tex files.",
-                        formatter_class=ColorHelpFormatter,
-                        add_help=False)
-    
+        prog="md_to_tex",
+        description="Converts the input .md files to .tex files.",
+        formatter_class=ColorHelpFormatter,
+        add_help=False,
+    )
+
     parser.add_argument("input_dir")
     parser.add_argument("output_dir")
-    parser.add_argument("-h", "--help", action="help", default=argparse.SUPPRESS,
-                        help="Show this help message and exit.")
-    parser.add_argument("-b", "--bleed-size", default="0.0in", type=str, help="Specify bleed size. Recommended size is 0.125in, if printing.")
-    parser.add_argument("-g", "--gutter-size", default="0.0in", type=str, help="Specify gutter size. Recommended size is 0.15in, if printing.")
-    parser.add_argument("-n", "--no-cover", action="store_true", help="Do not include cover in output file.")
+    parser.add_argument(
+        "-h",
+        "--help",
+        action="help",
+        default=argparse.SUPPRESS,
+        help="Show this help message and exit.",
+    )
+    parser.add_argument(
+        "-b",
+        "--bleed-size",
+        default="0.0in",
+        type=str,
+        help="Specify bleed size. Recommended size is 0.125in, if printing.",
+    )
+    parser.add_argument(
+        "-g",
+        "--gutter-size",
+        default="0.0in",
+        type=str,
+        help="Specify gutter size. Recommended size is 0.15in, if printing.",
+    )
+    parser.add_argument(
+        "-n",
+        "--no-cover",
+        action="store_true",
+        help="Do not include cover in output file.",
+    )
     parser.add_argument("-v", "--verbose", action="store_true", help="Be verbose.")
-    parser.add_argument("-s", "--skip-images", action="store_true", help="Skip generating the images. Will use previously generated images. Speeds up execution.")
-    parser.add_argument("-d", "--dont-print-images", action="store_true", help="Don't print the images to the PDF. Greatly speeds up execution.")
-    parser.add_argument("-x", "--xelatex-command-line",
-                        type=str,
-                        help=f"Allow overriding the command used to call xelatex. This will be formatted with `{colors.faint('str.format')}`, with keyword arguments MODE (optional to preserve verbosity), OUTPUT_DIRECTORY, JOB_NAME, and TEX_FILE. The default is `{colors.faint(xelatex_default_miktex)}` for MiKTeX, and `{colors.faint(xelatex_default_texlive)}` for TeX Live and other TeX distributions.")
+    parser.add_argument(
+        "-s",
+        "--skip-images",
+        action="store_true",
+        help="Skip generating the images. Will use previously generated images. Speeds up execution.",
+    )
+    parser.add_argument(
+        "-d",
+        "--dont-print-images",
+        action="store_true",
+        help="Don't print the images to the PDF. Greatly speeds up execution.",
+    )
+    parser.add_argument(
+        "-x",
+        "--xelatex-command-line",
+        type=str,
+        help=f"Allow overriding the command used to call xelatex. This will be formatted with `{colors.faint('str.format')}`, with keyword arguments MODE (optional to preserve verbosity), OUTPUT_DIRECTORY, JOB_NAME, and TEX_FILE. The default is `{colors.faint(xelatex_default_miktex)}` for MiKTeX, and `{colors.faint(xelatex_default_texlive)}` for TeX Live and other TeX distributions.",
+    )
 
     # Custom action for `--print-mode`
     class PrintMode(argparse.Action):
@@ -431,32 +525,50 @@ def main():
             setattr(namespace, "gutter_size", "0.15in")
             setattr(namespace, "no_cover", True)
 
-    parser.add_argument("-p", "--print-mode", action=PrintMode, nargs=0,
-                        help=f"Activate print mode, short for `{colors.faint('-b 0.125in -g 0.15in -n')}`")
-    
+    parser.add_argument(
+        "-p",
+        "--print-mode",
+        action=PrintMode,
+        nargs=0,
+        help=f"Activate print mode, short for `{colors.faint('-b 0.125in -g 0.15in -n')}`",
+    )
+
     args = parser.parse_args()
 
-    if args.verbose: logger.setLevel(logging.DEBUG)
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
 
     xelatex_command = args.xelatex_command_line or get_xelatex_command()
 
     input_dir = Path(args.input_dir).absolute()
-    
+
     book_config = parse_book_config(input_dir)
     if book_config is None:
         return
-    
+
     output_dir = Path(args.output_dir).absolute()
     os.makedirs(output_dir, exist_ok=True)
     output_dir = output_dir.resolve()
-    
+
     work_dir = output_dir / "WorkDir" / "TeX"
     os.makedirs(work_dir, exist_ok=True)
     work_dir = work_dir.resolve()
-    
+
     images_config = parse_image_config(book_config.directory / "Images")
 
-    result = convert_book(book_config, images_config, output_dir, work_dir, length_to_inches(args.bleed_size), args.dont_print_images, args.skip_images, xelatex_command, args.no_cover, length_to_inches(args.gutter_size))
+    result = convert_book(
+        book_config,
+        images_config,
+        output_dir,
+        work_dir,
+        length_to_inches(args.bleed_size),
+        args.dont_print_images,
+        args.skip_images,
+        xelatex_command,
+        args.no_cover,
+        length_to_inches(args.gutter_size),
+    )
+
 
 if __name__ == "__main__":
     main()
