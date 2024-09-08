@@ -1,0 +1,37 @@
+name: Lint
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - '**.py'
+      - '.github/workflows/black.yml'
+      - 'requirements.txt'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      # Give the default GITHUB_TOKEN write permission to commit and push the
+      # added or changed files to the repository.
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run Black
+        uses: psf/black@stable
+        with:
+          options: "--verbose"
+          src: "./Scripts"
+      - name: Commit
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Apply formatting changes
+          skip_fetch: true
+          skip_checkout: true

@@ -3,7 +3,7 @@
 # Prerequisites
 You should have the following:
 
-1. Python packages listed in `Scripts/requirements.txt`.
+1. Python packages listed in `requirements.txt`.
 2. (If exporting to PDF) `xelatex` in your PATH.
     * If your TeX distribution does not support automatically installing missing packages, you'll also need to install all the necessary TeX packages to compile `Common/TeX/WorldEnd2_Common.tex`.
 
