@@ -36,7 +36,7 @@ jobs:
 
           echo "PADDED_VOLUME=${padded_volume}" >> $GITHUB_ENV
           echo "Generating PDF for Volume ${volume}"
-          python "Scripts/output_tex.py" "Volumes/Volume ${volume}" "Output_v${padded_volume}" -p
+          python "Scripts/output_tex.py" "Volumes/Volume_${padded_volume}" "Output_v${padded_volume}" -p
         shell: bash
       - name: Generate EPUB
         run: |
@@ -45,15 +45,15 @@ jobs:
 
           echo "PADDED_VOLUME=${padded_volume}" >> $GITHUB_ENV
           echo "Generating EPUB for Volume ${volume}"
-          python "Scripts/output_epub.py" "Volumes/Volume ${volume}" "Output_v${padded_volume}"
+          python "Scripts/output_epub.py" "Volumes/Volume_${padded_volume}" "Output_v${padded_volume}"
         shell: bash
       - name: Upload PDFs
         uses: actions/upload-artifact@v4
         with:
           name: WorldEnd2 Vol. ${{ matrix.volume }}.pdf
-          path: Output_v${{ env.PADDED_VOLUME }}/WorldEnd2 v${{ env.PADDED_VOLUME }}.pdf
+          path: Output_v${{ env.PADDED_VOLUME }}/WorldEnd2_v${{ env.PADDED_VOLUME }}.pdf
       - name: Upload EPUBs
         uses: actions/upload-artifact@v4
         with:
           name: WorldEnd2 Vol. ${{ matrix.volume }}.epub
-          path: Output_v${{ env.PADDED_VOLUME }}/WorldEnd2 v${{ env.PADDED_VOLUME }}.epub
+          path: Output_v${{ env.PADDED_VOLUME }}/WorldEnd2_v${{ env.PADDED_VOLUME }}.epub

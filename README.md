@@ -12,11 +12,11 @@ You should have the following:
 Once you have completed all the prerequisites, you can run `Scripts/output_tex.py`:
 
 ```sh
-python ./Scripts/output_tex.py "./Volumes/Volume 3/" "./Output/"
+python ./Scripts/output_tex.py "./Volumes/Volume_03/" "./Output_v03/"
 ```
 
-- The first argument (`"./Volumes/Volume 3/"`) specifies the path to the directory containing the volume.
-- The second argument (`"./Output/"`) is the location for the output file and any temporary working files.
+- The first argument (`"./Volumes/Volume_03/"`) specifies the path to the directory containing the volume.
+- The second argument (`"./Output_v03/"`) is the location for the output file and any temporary working files.
 
 ### Printing
 If you want to generate the PDF for printing in a perfect-bound book, there are three related flags:
@@ -35,11 +35,11 @@ It is possible to tweak the print options alongside `--print-mode` by appending 
 To export to EPUB, run `Scripts/output_epub.py`:
 
 ``` sh
-python ./Scripts/output_epub.py "./Volumes/Volume 3/" "./Output/"
+python ./Scripts/output_epub.py "./Volumes/Volume_03/" "./Output_v03/"
 ```
 
-- The first argument (`"./Volumes/Volume 3/"`) specifies the path to the directory containing the volume.
-- The second argument (`"./Output/"`) is the location for the output file and any temporary working files.
+- The first argument (`"./Volumes/Volume_03/"`) specifies the path to the directory containing the volume.
+- The second argument (`"./Output_v03/"`) is the location for the output file and any temporary working files.
 
 # Changes from Orlandri Translation
 - Use Yen Press names
