@@ -1,0 +1,59 @@
+name: Test PDF & EPUB Generation
+
+on:
+  push:
+    branches: ["main"]
+
+# permissions:
+#   contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        volume: [1, 2, 3]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Install XeLaTeX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-xetex
+      - name: Generate PDF
+        run: |
+          volume="${{ matrix.volume }}"
+          padded_volume="$(printf '%02d' ${volume})"
+
+          echo "PADDED_VOLUME=${padded_volume}" >> $GITHUB_ENV
+          echo "Generating PDF for Volume ${volume}"
+          python "Scripts/output_tex.py" "Volumes/Volume ${volume}" "Output_v${padded_volume}" -p
+        shell: bash
+      - name: Generate EPUB
+        run: |
+          volume="${{ matrix.volume }}"
+          padded_volume="$(printf '%02d' ${volume})"
+
+          echo "PADDED_VOLUME=${padded_volume}" >> $GITHUB_ENV
+          echo "Generating EPUB for Volume ${volume}"
+          python "Scripts/output_epub.py" "Volumes/Volume ${volume}" "Output_v${padded_volume}"
+        shell: bash
+      - name: Upload PDFs
+        uses: actions/upload-artifact@v4
+        with:
+          name: WorldEnd2 Vol. ${{ matrix.volume }}.pdf
+          path: Output_v${{ env.PADDED_VOLUME }}/WorldEnd2 v${{ env.PADDED_VOLUME }}.pdf
+      - name: Upload EPUBs
+        uses: actions/upload-artifact@v4
+        with:
+          name: WorldEnd2 Vol. ${{ matrix.volume }}.epub
+          path: Output_v${{ env.PADDED_VOLUME }}/WorldEnd2 v${{ env.PADDED_VOLUME }}.epub
