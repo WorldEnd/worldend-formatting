@@ -1,3 +1,5 @@
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 **Note:** Still very much a work-in-progress.
 
 # Prerequisites
@@ -53,7 +55,7 @@ python ./Scripts/output_epub.py "./Volumes/Volume_03/" "./Output_v03/"
   - No space after ellipses (…)
   - No space around em dashes (—)
   - Capitalization for stutters matches Yen Press (e.g., Wi-widow)
-  - Contractions use closing apostrophes (’)
+  - Contractions use closing apostrophes (e.g., move on ’em)
 
 # Screenshots
 ## PDF
