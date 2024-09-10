@@ -147,9 +147,7 @@ class EPUBGenerator:
             lines = (self.text_directory / filename).read_text().splitlines()
 
             for line in lines:
-                stripped_line = (
-                    line.strip().replace("<tt>", "<u>").replace("</tt>", "</u>")
-                )
+                stripped_line = line.strip()
 
                 if stripped_line:
                     new_line = self.process_line(stripped_line, state)
