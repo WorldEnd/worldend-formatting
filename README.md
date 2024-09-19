@@ -1,8 +1,10 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![GitHub Release](https://img.shields.io/github/v/release/WorldEnd/worldend-formatting)](https://github.com/WorldEnd/worldend-formatting/releases/latest)
-[![Website](https://img.shields.io/website?url=http%3A//worldend.github.io)](https://worldend.github.io)
+[![Website](https://img.shields.io/website?url=http%3A//worldend.github.io)](https://worldend.github.io/)
 
 **Note:** Still very much a work-in-progress.
+
+If you're just looking for the releases, you can find them on the Releases page for this repository or on [our website](https://worldend.github.io/).
 
 # Prerequisites
 You should have the following:
