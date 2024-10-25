@@ -555,7 +555,7 @@ def main():
             git_commit_hash = ""
             logger.error("Could not get commit hash", exc_info=e)
             
-    logger.info("Current git commit hash: %s", git_commit_hash)
+    logger.info("Current git commit hash: '%s'", git_commit_hash)
 
     input_dir = Path(args.input_dir).absolute()
 
