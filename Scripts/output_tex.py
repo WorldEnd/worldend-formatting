@@ -26,6 +26,8 @@ from Lib.config import (
     parse_image_config,
 )
 from Lib.project_dirs import common_dir
+from Lib.git_info import curr_git_commit_hash_with_dirty
+
 from PIL import Image, ImageDraw, ImageFont
 from pylatexenc.latexencode import (
     RULE_REGEX,
@@ -517,6 +519,11 @@ def main():
         type=str,
         help=f"Allow overriding the command used to call xelatex. This will be formatted with `{colors.faint('str.format')}`, with keyword arguments MODE (optional to preserve verbosity), OUTPUT_DIRECTORY, JOB_NAME, and TEX_FILE. The default is `{colors.faint(xelatex_default_miktex)}` for MiKTeX, and `{colors.faint(xelatex_default_texlive)}` for TeX Live and other TeX distributions.",
     )
+    parser.add_argument(
+        "--git-commit-hash",
+        type=str,
+        help=f"A text string for the current commit hash, to be included in the credits page. If omitted, `{colors.faint('git rev-parse')}` and `{colors.faint('git diff-index')}` are called to determine the current commit hash and if the index is dirty.",
+    ),
 
     # Custom action for `--print-mode`
     class PrintMode(argparse.Action):
@@ -539,6 +546,16 @@ def main():
         logger.setLevel(logging.DEBUG)
 
     xelatex_command = args.xelatex_command_line or get_xelatex_command()
+    
+    git_commit_hash = args.git_commit_hash
+    if git_commit_hash is None:
+        try:
+            git_commit_hash = curr_git_commit_hash_with_dirty()
+        except Exception as e:
+            git_commit_hash = ""
+            logger.error("Could not get commit hash", exc_info=e)
+            
+    logger.info("Current git commit hash: %s", git_commit_hash)
 
     input_dir = Path(args.input_dir).absolute()
 
