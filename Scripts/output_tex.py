@@ -269,7 +269,8 @@ def convert_book(
         content_lines.append(image_latex_command(img_info, no_cover))
 
     for chapter in book_config.chapters:
-        img_info = image_config.chapter_images[str(chapter.number)]
+        image_title = list(image_config.chapter_images.keys())[chapter.number - 1]
+        img_info = image_config.chapter_images[image_title]
         content_lines.append(image_latex_command(img_info, no_cover))
         convert_chapter(chapter, work_dir, content_lines)
 
