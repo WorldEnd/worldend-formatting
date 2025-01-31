@@ -383,19 +383,24 @@ def draw_page_numbers(page_numbers: list[int], toc_path: Path, output_path: Path
     offshift_y = 246
 
     position_x = 0
-    position_y = 0
+    position_y = 1  # Start in second row (0-based indices)
+
+    first_row_x = 59.52
+    first_row_y = 275.82
+
+    num_rows = 4
 
     for number in padded_numbers:
         text = "P\u2009.\u2009" + number
 
         text_position = (
-            59.52 + offshift_x * position_x,
-            521.82 + offshift_y * position_y,
+            first_row_x + offshift_x * position_x,
+            first_row_y + offshift_y * position_y,
         )
 
         position_y += 1
-        if position_y == 3:
-            position_y = -1
+        if position_y == num_rows:
+            position_y = 0
             position_x = 1
 
         draw.text(text_position, text, fill=text_color, font=font)
