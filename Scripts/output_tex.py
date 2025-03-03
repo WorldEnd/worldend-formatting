@@ -505,6 +505,14 @@ def main():
         add_help=False,
     )
 
+    # Custom action for `--print-mode`
+    class PrintMode(argparse.Action):
+        def __call__(self, parser, namespace, values, option_string=None):
+            setattr(namespace, "bleed_size", "0.125in")
+            setattr(namespace, "gutter_size", "0.15in")
+            setattr(namespace, "no_front_cover", True)
+            setattr(namespace, "no_back_cover", True)
+
     parser.add_argument("input_dir")
     parser.add_argument("output_dir")
     parser.add_argument(
@@ -536,6 +544,13 @@ def main():
         help=f"Allow overriding the command used to call xelatex. This will be formatted with `{colors.faint('str.format')}`, with keyword arguments MODE (optional to preserve verbosity), OUTPUT_DIRECTORY, JOB_NAME, and TEX_FILE. The default is `{colors.faint(xelatex_default_miktex)}` for MiKTeX, and `{colors.faint(xelatex_default_texlive)}` for TeX Live and other TeX distributions.",
     )
     parser.add_argument(
+        "-p",
+        "--print-mode",
+        action=PrintMode,
+        nargs=0,
+        help=f"Activate print mode, short for `{colors.faint('-b 0.125in -g 0.15in -F -B')}`",
+    )
+    parser.add_argument(
         "-F",
         "--no-front-cover",
         action="store_true",
@@ -558,22 +573,6 @@ def main():
         "--no-images",
         action="store_true",
         help="Don't print the images to the PDF. Greatly speeds up execution.",
-    )
-
-    # Custom action for `--print-mode`
-    class PrintMode(argparse.Action):
-        def __call__(self, parser, namespace, values, option_string=None):
-            setattr(namespace, "bleed_size", "0.125in")
-            setattr(namespace, "gutter_size", "0.15in")
-            setattr(namespace, "no_front_cover", True)
-            setattr(namespace, "no_back_cover", True)
-
-    parser.add_argument(
-        "-p",
-        "--print-mode",
-        action=PrintMode,
-        nargs=0,
-        help=f"Activate print mode, short for `{colors.faint('-b 0.125in -g 0.15in -F -B')}`",
     )
 
     args = parser.parse_args()
