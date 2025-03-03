@@ -122,9 +122,18 @@ def parse_book_config(directory):
 
 
 class ImagesConfig(DebugPrintable):
+    front_cover: "ImageInfo"
+    back_cover: "ImageInfo"
     insert_images: "OrderedDict[str, ImageInfo]"
     chapter_images: "OrderedDict[str, ImageInfo]"
     directory: Path
+
+    def __init__(self):
+        self.front_cover = None
+        self.back_cover = None
+        self.insert_images = OrderedDict()
+        self.chapter_images = OrderedDict()
+        self.directory = None
 
     @staticmethod
     def from_file(config_file):
@@ -140,12 +149,18 @@ class ImagesConfig(DebugPrintable):
         return config
 
     def parse_yaml(self, node: dict):
-        self.insert_images = OrderedDict()
+        for k, v in node["cover"].items():
+            img = self.image_from_yaml(v, k, "Cover")
+            image_type = v.get("image_type")
+            if image_type == "front_cover":
+                self.front_cover = img
+            elif image_type == "back_cover":
+                self.back_cover = img
+
         for k, v in node["insert"].items():
             img = self.image_from_yaml(v, k, "Insert")
             self.insert_images[img.image_title()] = img
 
-        self.chapter_images = OrderedDict()
         for k, v in node["chapter"].items():
             img = self.image_from_yaml(v, k, "Chapter")
             self.chapter_images[img.image_title()] = img
@@ -156,8 +171,10 @@ class ImagesConfig(DebugPrintable):
                 image = SingleImage()
             case "double":
                 image = DoubleImage()
-            case "cover":
-                image = CoverImage()
+            case "front_cover":
+                image = FrontCoverImage()
+            case "back_cover":
+                image = BackCoverImage()
             case "filler":
                 image = FillerImage()
             case "titlepage":
@@ -174,7 +191,10 @@ class ImagesConfig(DebugPrintable):
 
     def all_images_iter(self) -> Iterator["ImageInfo"]:
         return itertools.chain(
-            self.insert_images.values(), self.chapter_images.values()
+            self.insert_images.values(),
+            self.chapter_images.values(),
+            [self.front_cover] if self.front_cover else [],
+            [self.back_cover] if self.back_cover else [],
         )
 
 
@@ -295,6 +315,14 @@ class TitlePageImage(SingleImage):
 
 
 class CoverImage(SingleImage):
+    pass
+
+
+class FrontCoverImage(CoverImage):
+    pass
+
+
+class BackCoverImage(CoverImage):
     pass
 
 
