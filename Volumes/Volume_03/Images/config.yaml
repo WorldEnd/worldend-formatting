@@ -1,6 +1,8 @@
+cover:
+  front.png:
+    image_type: front_cover
+
 insert:
-  cover.png:
-    image_type: cover
   filler1.png:
     image_type: filler
   insert1.png:
