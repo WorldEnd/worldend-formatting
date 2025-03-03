@@ -1,0 +1,25 @@
+cover:
+  front.png:
+    image_type: front_cover
+
+insert:
+  filler1.png:
+    image_type: filler
+  insert1.png:
+    image_type: double
+  insert2.png:
+    image_type: double
+  filler2.png:
+    image_type: filler
+  titlepage.png:
+    image_type: titlepage
+  toc.png:
+    image_type: toc
+
+chapter:
+  1.png:
+    image_type: double
+  2.png:
+    image_type: double
+  3.png:
+    image_type: double
