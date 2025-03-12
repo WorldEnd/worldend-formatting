@@ -57,7 +57,7 @@ xelatex_default_miktex = "xelatex -interaction={MODE} -enable-installer -output-
 xelatex_default_texlive = "xelatex -interaction={MODE} -output-directory={OUTPUT_DIRECTORY} -jobname={JOB_NAME} {TEX_FILE}"
 
 
-def get_xelatex_command():
+def get_xelatex_command() -> str:
     try:
         xelatex_version = subprocess.check_output(
             ["xelatex", "--version"], stderr=subprocess.STDOUT, text=True
@@ -115,7 +115,7 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
         # Command to run at the beginning of the span, and command to run
         # at the end. Use \bgroup and \egroup instead of { and } if you need to
         # enclose something between the start and end command
-        def span_replacement(start_command, end_command=""):
+        def span_replacement(start_command: str, end_command="") -> str:
             return (
                 r"\\begin{SpanEnv}\\renewcommand{\\SpanEnvClose}{"
                 + end_command
@@ -272,7 +272,7 @@ def convert_book(
     bleed_size=0.0,
     no_images=False,
     skip_image_generation=False,
-    xelatex_command_line: str = xelatex_default_texlive,
+    xelatex_command_line=xelatex_default_texlive,
     no_front_cover=False,
     no_back_cover=False,
     gutter_size=0.0,
