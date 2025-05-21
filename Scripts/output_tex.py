@@ -287,7 +287,6 @@ def convert_book(
     content_lines.extend(
         image_latex_command(img_info, no_front_cover, no_back_cover)
         for key, img_info in image_config.insert_images.items()
-        if key != "back"
     )
 
     for chapter in book_config.chapters:
