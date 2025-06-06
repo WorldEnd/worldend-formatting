@@ -227,7 +227,6 @@ def convert_chapter(chapter: Chapter, work_dir: Path, content_lines: list[str]):
         convert_part(part, work_dir, content_lines)
 
 
-# TODO
 def image_latex_command(
     img_info: ImageInfo, no_front_cover: bool, no_back_cover: bool
 ) -> str:
@@ -306,18 +305,13 @@ def convert_book(
     content_text = "\n\n".join(content_lines)
     (work_dir / "content.tex").write_text(content_text)
 
-    config_lines = []
-    config_lines.append(
-        r"\newcommand{\volumeNumberHeaderText}{Vol." + str(book_config.volume) + "}"
-    )
-    config_lines.append(
-        rf"\newcommand{{\bleedSize}}{in_curlies((str(bleed_size) + 'in'))}"
-    )
-    config_lines.append(
-        rf"\newcommand{{\gutterSize}}{in_curlies(str(gutter_size) + 'in')}"
-    )
+    config_lines = [
+        r"\newcommand{\volumeNumberHeaderText}{Vol." + str(book_config.volume) + "}",
+        rf"\newcommand{{\bleedSize}}{in_curlies((str(bleed_size) + 'in'))}",
+        rf"\newcommand{{\gutterSize}}{in_curlies(str(gutter_size) + 'in')}",
+    ]
     if no_images:
-        config_lines.append(r"\providecommand{\dontPrintImages}{}")  # TODO
+        config_lines.append(r"\providecommand{\dontPrintImages}{}")
 
     config_text = "\n".join(config_lines)
     (work_dir / "config.tex").write_text(config_text)
