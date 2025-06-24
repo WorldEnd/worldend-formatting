@@ -269,6 +269,7 @@ def convert_book(
     output_dir: Path,
     work_dir: Path,
     bleed_size=0.0,
+    no_inner_bleed=False,
     no_images=False,
     skip_image_generation=False,
     xelatex_command_line=xelatex_default_texlive,
@@ -308,6 +309,7 @@ def convert_book(
     config_lines = [
         r"\newcommand{\volumeNumberHeaderText}{Vol." + str(book_config.volume) + "}",
         rf"\newcommand{{\bleedSize}}{in_curlies((str(bleed_size) + 'in'))}",
+        rf"\newcommand{{\innerBleedSize}}{in_curlies((str(0.0 if no_inner_bleed else bleed_size) + 'in'))}",
         rf"\newcommand{{\gutterSize}}{in_curlies(str(gutter_size) + 'in')}",
     ]
     if no_images:
@@ -556,6 +558,12 @@ def main():
         help="Do not include back cover in output file.",
     )
     parser.add_argument(
+        "-N",
+        "--no-inner-bleed",
+        action="store_true",
+        help="Do not add bleed to the inner side of the page.",
+    )
+    parser.add_argument(
         "-G",
         "--skip-image-generation",
         action="store_true",
@@ -597,6 +605,7 @@ def main():
         output_dir,
         work_dir,
         length_to_inches(args.bleed_size),
+        args.no_inner_bleed,
         args.no_images,
         args.skip_image_generation,
         xelatex_command,
