@@ -36,7 +36,7 @@ jobs:
 
           echo "PADDED_VOLUME=${padded_volume}" >> $GITHUB_ENV
           echo "Generating PDF for Volume ${volume}"
-          python "Scripts/output_tex.py" "Volumes/Volume_${padded_volume}" "Output_v${padded_volume}" -p
+          python "Scripts/output_tex.py" "Volumes/Volume_${padded_volume}" "Output_v${padded_volume}" -p --version-tag "$GITHUB_SHA"
         shell: bash
       - name: Generate EPUB
         run: |

@@ -496,7 +496,7 @@ def cv2_to_pil(img, from_space="BGR", to_space="RGB"):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="md_to_tex",
+        prog="output_tex",
         description="Converts the input .md files to .tex files.",
         formatter_class=ColorHelpFormatter,
         add_help=False,
@@ -541,9 +541,9 @@ def main():
         help=f"Allow overriding the command used to call xelatex. This will be formatted with `{colors.faint('str.format')}`, with keyword arguments MODE (optional to preserve verbosity), OUTPUT_DIRECTORY, JOB_NAME, and TEX_FILE. The default is `{colors.faint(xelatex_default_miktex)}` for MiKTeX, and `{colors.faint(xelatex_default_texlive)}` for TeX Live and other TeX distributions.",
     )
     parser.add_argument(
-        "--git-commit-hash",
+        "--version-tag",
         type=str,
-        help=f"A text string for the current commit hash, to be included in the credits page. If omitted, `{colors.faint('git rev-parse')}` and `{colors.faint('git diff-index')}` are called to determine the current commit hash and if the index is dirty.",
+        help=f"A text string describing the current book version, to be included in the credits page. If omitted, the current git commit hash (determined by `{colors.faint('git rev-parse')}`) is used",
     ),
 
     parser.add_argument(
@@ -591,16 +591,16 @@ def main():
         logger.setLevel(logging.DEBUG)
 
     xelatex_command = args.xelatex_command_line or get_xelatex_command()
-    
-    git_commit_hash = args.git_commit_hash
-    if git_commit_hash is None:
+
+    version_tag = args.version_tag
+    if version_tag is None:
         try:
-            git_commit_hash = curr_git_commit_hash_with_dirty()
+            version_tag = curr_git_commit_hash_with_dirty()
         except Exception as e:
-            git_commit_hash = ""
-            logger.error("Could not get commit hash", exc_info=e)
-            
-    logger.info("Current git commit hash: '%s'", git_commit_hash)
+            version_tag = ""
+            logger.error("Could not get git commit hash", exc_info=e)
+
+    logger.info("Version tag: '%s'", version_tag)
 
     input_dir = Path(args.input_dir).absolute()
 
