@@ -1,6 +1,10 @@
+cover:
+  front.png:
+    image_type: front_cover
+  back.png:
+    image_type: back_cover
+
 insert:
-  cover.png:
-    image_type: cover
   insert1.png:
     image_type: single
   insert2.png:

@@ -29,11 +29,12 @@ If you want to generate the PDF for printing in a perfect-bound book, there are 
 
 - `-b` (`--bleed-size`): Specify the bleed size.
 - `-g` (`--gutter-size`): Specify the gutter size.
-- `-n` (`--no-cover`): Do not include cover.
+- `-F` (`--no-front-cover`): Do not include front cover.
+- `-B` (`--no-back-cover`): Do not include back cover.
  
-By default, the bleed size is 0 in, gutter size is 0 in, and cover is included.
+By default, the bleed size is 0 in, gutter size is 0 in, and both covers are included.
 
-For convenience, `-p` (`--print-mode`) is provided, which is short for `-b 0.125in -g 0.15in -n`.
+For convenience, `-p` (`--print-mode`) is provided, which is short for `-b 0.125in -g 0.15in -F -B`.
 
 It is possible to tweak the print options alongside `--print-mode` by appending them after. For example, `-p -b 0in` enables print mode without bleed. If you put the print options before print mode, they will be overwritten, but other arguments can be put before without consequence.
 
@@ -50,6 +51,7 @@ python ./Scripts/output_epub.py "./Volumes/Volume_03/" "./Output_v03/"
 # Changes from Orlandri Translation
 - Use Yen Press names
 - Insert and chapter images are in English
+- Added back covers in English
 - Minor edits to the text
 - Follow the Yen Press format as closely as possible, including:
   - Indented paragraphs

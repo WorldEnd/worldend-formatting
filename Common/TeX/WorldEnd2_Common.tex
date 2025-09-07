@@ -19,12 +19,13 @@
 \documentclass[twoside]{book}
 
 \providecommand{\bleedSize}{0.0in}
+\providecommand{\innerBleedSize}{0.0in}
 \providecommand{\gutterSize}{0.0in}
 
 \usepackage[
-  paperwidth=\dimexpr5.5in + \bleedSize + \bleedSize\relax,
+  paperwidth=\dimexpr5.5in + \bleedSize + \innerBleedSize\relax,
   paperheight=\dimexpr8.25in + \bleedSize + \bleedSize\relax,
-  inner=\dimexpr0.45in + \gutterSize + \bleedSize\relax,
+  inner=\dimexpr0.45in + \gutterSize + \innerBleedSize\relax,
   outer=\dimexpr0.45in + \bleedSize\relax,
   bottom=\dimexpr0.5in + \bleedSize\relax,
   top=0in, % total is 0.95 in for top
@@ -127,6 +128,7 @@
 \setlength{\spaceskip}{3.33333pt plus 1.66666pt minus 1.11111pt}
 \setlength{\xspaceskip}{3.33333pt plus 1pt}
 \setlength{\emergencystretch}{0.5em}
+\raggedbottom
 
 
 % ======= Splittable characters =======
@@ -174,20 +176,27 @@
 
 
 % ======= Image Commands =======
-\newcommand{\insertTikzPicture}[2]{
+\newcommand{\insertTikzPicture}[2]{%
   \begin{tikzpicture}[remember picture,overlay,every node/.style={inner sep=0,outer sep=0}]
-    \node[anchor=#1,yshift=0pt,xshift=0pt] at (current page.#1) {
+    \node[anchor=#1,yshift=0pt,xshift=0pt] at (current page.#1) {%
       \ifx\dontPrintImages\undefined
-        \includegraphics[height=\paperheight]{#2}
+        \includegraphics[height=\paperheight]{#2}%
       \else
-        \phantom{\includegraphics[height=\paperheight]{#2}}
+        \phantom{\includegraphics[height=\paperheight]{#2}}%
       \fi
     };
-  \end{tikzpicture}
+  \end{tikzpicture}%
 }
 
 \newcommand{\insertSingleImage}[1]{
-  \newpage\thispagestyle{empty}\insertTikzPicture{north west}{#1}
+  \newpage\thispagestyle{empty}%
+  \begingroup
+    \ifodd\value{page}
+      \insertTikzPicture{north east}{#1}%
+    \else
+      \insertTikzPicture{north west}{#1}%
+    \fi
+  \endgroup
 }
 
 \newcommand{\insertDoubleImage}[1]{

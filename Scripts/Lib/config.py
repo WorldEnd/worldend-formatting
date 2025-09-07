@@ -34,7 +34,7 @@ class Book(DebugPrintable):
     #     return itertools.chain(ch.parts for ch in self.chapters)
 
     @staticmethod
-    def from_file(config_file):
+    def from_file(config_file: str):
         config_file = Path(config_file)
         if not config_file.exists():
             print(f"Error: Config file does not exist: '{config_file}'")
@@ -57,7 +57,7 @@ class Book(DebugPrintable):
             chapter.parse_yaml(c)
             self.chapters.append(chapter)
 
-    def text_directory(self):
+    def text_directory(self) -> Path:
         return self.directory / "Text"
 
 
@@ -79,10 +79,10 @@ class Chapter(DebugPrintable):
             part.parse_yaml(p)
             self.parts.append(part)
 
-    def base_filename(self):
+    def base_filename(self) -> str:
         return str(self.number)
 
-    def is_single_part_chapter(self):
+    def is_single_part_chapter(self) -> bool:
         return len(self.parts) == 1
 
 
@@ -98,17 +98,17 @@ class Part(DebugPrintable):
     def parse_yaml(self, node: dict):
         self.title = node["title"]
 
-    def base_filename(self):
+    def base_filename(self) -> str:
         if self.parent.is_single_part_chapter():
             return self.parent.base_filename()
         else:
             return f"{self.parent.base_filename()}.{self.number}"
 
-    def text_filepath(self):
+    def text_filepath(self) -> Path:
         return self.grandparent.text_directory() / (self.base_filename() + ".md")
 
 
-def parse_book_config(directory):
+def parse_book_config(directory: str):
     directory = Path(directory)
     config_file = directory / "config.yaml"
 
@@ -122,9 +122,18 @@ def parse_book_config(directory):
 
 
 class ImagesConfig(DebugPrintable):
+    front_cover: "ImageInfo"
+    back_cover: "ImageInfo"
     insert_images: "OrderedDict[str, ImageInfo]"
     chapter_images: "OrderedDict[str, ImageInfo]"
     directory: Path
+
+    def __init__(self):
+        self.front_cover = None
+        self.back_cover = None
+        self.insert_images = OrderedDict()
+        self.chapter_images = OrderedDict()
+        self.directory = None
 
     @staticmethod
     def from_file(config_file):
@@ -140,24 +149,34 @@ class ImagesConfig(DebugPrintable):
         return config
 
     def parse_yaml(self, node: dict):
-        self.insert_images = OrderedDict()
+        for k, v in node["cover"].items():
+            img = self.image_from_yaml(v, k, "Cover")
+            image_type = v.get("image_type")
+            if image_type == "front_cover":
+                self.front_cover = img
+            elif image_type == "back_cover":
+                self.back_cover = img
+
         for k, v in node["insert"].items():
             img = self.image_from_yaml(v, k, "Insert")
             self.insert_images[img.image_title()] = img
 
-        self.chapter_images = OrderedDict()
         for k, v in node["chapter"].items():
             img = self.image_from_yaml(v, k, "Chapter")
             self.chapter_images[img.image_title()] = img
 
-    def image_from_yaml(self, node, filename, subdirectory) -> "ImageInfo":
+    def image_from_yaml(
+        self, node: dict, filename: str, subdirectory: str
+    ) -> "ImageInfo":
         match node["image_type"]:
             case "single":
                 image = SingleImage()
             case "double":
                 image = DoubleImage()
-            case "cover":
-                image = CoverImage()
+            case "front_cover":
+                image = FrontCoverImage()
+            case "back_cover":
+                image = BackCoverImage()
             case "filler":
                 image = FillerImage()
             case "titlepage":
@@ -174,7 +193,10 @@ class ImagesConfig(DebugPrintable):
 
     def all_images_iter(self) -> Iterator["ImageInfo"]:
         return itertools.chain(
-            self.insert_images.values(), self.chapter_images.values()
+            self.insert_images.values(),
+            self.chapter_images.values(),
+            [self.front_cover] if self.front_cover else [],
+            [self.back_cover] if self.back_cover else [],
         )
 
 
@@ -295,6 +317,14 @@ class TitlePageImage(SingleImage):
 
 
 class CoverImage(SingleImage):
+    pass
+
+
+class FrontCoverImage(CoverImage):
+    pass
+
+
+class BackCoverImage(CoverImage):
     pass
 
 

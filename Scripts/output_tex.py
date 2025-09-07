@@ -59,7 +59,7 @@ xelatex_default_miktex = "xelatex -interaction={MODE} -enable-installer -output-
 xelatex_default_texlive = "xelatex -interaction={MODE} -output-directory={OUTPUT_DIRECTORY} -jobname={JOB_NAME} {TEX_FILE}"
 
 
-def get_xelatex_command():
+def get_xelatex_command() -> str:
     try:
         xelatex_version = subprocess.check_output(
             ["xelatex", "--version"], stderr=subprocess.STDOUT, text=True
@@ -117,7 +117,7 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
         # Command to run at the beginning of the span, and command to run
         # at the end. Use \bgroup and \egroup instead of { and } if you need to
         # enclose something between the start and end command
-        def span_replacement(start_command, end_command=""):
+        def span_replacement(start_command: str, end_command="") -> str:
             return (
                 r"\\begin{SpanEnv}\\renewcommand{\\SpanEnvClose}{"
                 + end_command
@@ -229,7 +229,9 @@ def convert_chapter(chapter: Chapter, work_dir: Path, content_lines: list[str]):
         convert_part(part, work_dir, content_lines)
 
 
-def image_latex_command(img_info: ImageInfo, no_cover: bool) -> str:
+def image_latex_command(
+    img_info: ImageInfo, no_front_cover: bool, no_back_cover: bool
+) -> str:
     image_path_string = str(
         PurePosixPath(img_info.relative_image_path().with_suffix(".png"))
     )
@@ -241,13 +243,22 @@ def image_latex_command(img_info: ImageInfo, no_cover: bool) -> str:
         or img_info.image_type == "filler"
     ):
         return rf"\insertSingleImage{in_curlies(image_path_string)}"
-    elif img_info.image_type == "cover":
+    elif img_info.image_type == "front_cover":
         return (
             ""
-            if no_cover
+            if no_front_cover
             else (
                 rf"\insertSingleImage{in_curlies(image_path_string)}" + "\n\n"
                 r"\newpage\vspace*{\fill}\thispagestyle{empty}\vspace*{\fill}\newpage"
+            )
+        )
+    elif img_info.image_type == "back_cover":
+        return (
+            ""
+            if no_back_cover
+            else (
+                r"\newleftpage\thispagestyle{empty}\insertTikzPicture{north west}"
+                + in_curlies(image_path_string)
             )
         )
     else:
@@ -260,35 +271,50 @@ def convert_book(
     output_dir: Path,
     work_dir: Path,
     bleed_size=0.0,
-    dont_print_images=False,
-    skip_generate_images=False,
-    xelatex_command_line: str = xelatex_default_texlive,
-    no_cover=False,
+    no_inner_bleed=False,
+    no_images=False,
+    skip_image_generation=False,
+    xelatex_command_line=xelatex_default_texlive,
+    no_front_cover=False,
+    no_back_cover=False,
     gutter_size=0.0,
 ):
     content_lines = []
-    for img_info in image_config.insert_images.values():
-        content_lines.append(image_latex_command(img_info, no_cover))
+
+    if image_config.front_cover is not None:
+        content_lines.append(
+            image_latex_command(image_config.front_cover, no_front_cover, no_back_cover)
+        )
+
+    content_lines.extend(
+        image_latex_command(img_info, no_front_cover, no_back_cover)
+        for key, img_info in image_config.insert_images.items()
+    )
 
     for chapter in book_config.chapters:
-        img_info = image_config.chapter_images[str(chapter.number)]
-        content_lines.append(image_latex_command(img_info, no_cover))
+        img_info = image_config.chapter_images.get(
+            list(image_config.chapter_images.keys())[chapter.number - 1]
+        )
+        content_lines.append(
+            image_latex_command(img_info, no_front_cover, no_back_cover)
+        )
         convert_chapter(chapter, work_dir, content_lines)
+
+    if image_config.back_cover is not None:
+        content_lines.append(
+            image_latex_command(image_config.back_cover, no_front_cover, no_back_cover)
+        )
 
     content_text = "\n\n".join(content_lines)
     (work_dir / "content.tex").write_text(content_text)
 
-    config_lines = []
-    config_lines.append(
-        r"\newcommand{\volumeNumberHeaderText}{Vol." + str(book_config.volume) + "}"
-    )
-    config_lines.append(
-        rf"\newcommand{{\bleedSize}}{in_curlies((str(bleed_size) + 'in'))}"
-    )
-    config_lines.append(
-        rf"\newcommand{{\gutterSize}}{in_curlies(str(gutter_size) + 'in')}"
-    )
-    if dont_print_images:
+    config_lines = [
+        r"\newcommand{\volumeNumberHeaderText}{Vol." + str(book_config.volume) + "}",
+        rf"\newcommand{{\bleedSize}}{in_curlies((str(bleed_size) + 'in'))}",
+        rf"\newcommand{{\innerBleedSize}}{in_curlies((str(0.0 if no_inner_bleed else bleed_size) + 'in'))}",
+        rf"\newcommand{{\gutterSize}}{in_curlies(str(gutter_size) + 'in')}",
+    ]
+    if no_images:
         config_lines.append(r"\providecommand{\dontPrintImages}{}")
 
     config_text = "\n".join(config_lines)
@@ -332,11 +358,11 @@ def convert_book(
     env["TEXINPUTS"] = tex_inputs_no_images
     subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
 
-    if not skip_generate_images:
+    if not skip_image_generation:
         page_numbers = get_page_numbers(page_numbers_file)
         generate_images(image_config, work_dir, page_numbers, bleed_size)
 
-    if not dont_print_images:
+    if not no_images:
         logger.info("==Starting xelatex (second pass)==")
         env["TEXINPUTS"] = tex_inputs
         subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
@@ -384,19 +410,24 @@ def draw_page_numbers(page_numbers: list[int], toc_path: Path, output_path: Path
     offshift_y = 246
 
     position_x = 0
-    position_y = 0
+    position_y = 1  # Start in second row (0-based indices)
+
+    first_row_x = 59.52
+    first_row_y = 275.82
+
+    num_rows = 4
 
     for number in padded_numbers:
         text = "P\u2009.\u2009" + number
 
         text_position = (
-            59.52 + offshift_x * position_x,
-            521.82 + offshift_y * position_y,
+            first_row_x + offshift_x * position_x,
+            first_row_y + offshift_y * position_y,
         )
 
         position_y += 1
-        if position_y == 3:
-            position_y = -1
+        if position_y == num_rows:
+            position_y = 0
             position_x = 1
 
         draw.text(text_position, text, fill=text_color, font=font)
@@ -471,6 +502,14 @@ def main():
         add_help=False,
     )
 
+    # Custom action for `--print-mode`
+    class PrintMode(argparse.Action):
+        def __call__(self, parser, namespace, values, option_string=None):
+            setattr(namespace, "bleed_size", "0.125in")
+            setattr(namespace, "gutter_size", "0.15in")
+            setattr(namespace, "no_front_cover", True)
+            setattr(namespace, "no_back_cover", True)
+
     parser.add_argument("input_dir")
     parser.add_argument("output_dir")
     parser.add_argument(
@@ -494,25 +533,7 @@ def main():
         type=str,
         help="Specify gutter size. Recommended size is 0.15in, if printing.",
     )
-    parser.add_argument(
-        "-n",
-        "--no-cover",
-        action="store_true",
-        help="Do not include cover in output file.",
-    )
     parser.add_argument("-v", "--verbose", action="store_true", help="Be verbose.")
-    parser.add_argument(
-        "-s",
-        "--skip-images",
-        action="store_true",
-        help="Skip generating the images. Will use previously generated images. Speeds up execution.",
-    )
-    parser.add_argument(
-        "-d",
-        "--dont-print-images",
-        action="store_true",
-        help="Don't print the images to the PDF. Greatly speeds up execution.",
-    )
     parser.add_argument(
         "-x",
         "--xelatex-command-line",
@@ -525,19 +546,43 @@ def main():
         help=f"A text string for the current commit hash, to be included in the credits page. If omitted, `{colors.faint('git rev-parse')}` and `{colors.faint('git diff-index')}` are called to determine the current commit hash and if the index is dirty.",
     ),
 
-    # Custom action for `--print-mode`
-    class PrintMode(argparse.Action):
-        def __call__(self, parser, namespace, values, option_string=None):
-            setattr(namespace, "bleed_size", "0.125in")
-            setattr(namespace, "gutter_size", "0.15in")
-            setattr(namespace, "no_cover", True)
-
     parser.add_argument(
         "-p",
         "--print-mode",
         action=PrintMode,
         nargs=0,
-        help=f"Activate print mode, short for `{colors.faint('-b 0.125in -g 0.15in -n')}`",
+        help=f"Activate print mode, short for `{colors.faint('-b 0.125in -g 0.15in -F -B')}`",
+    )
+
+    parser.add_argument(
+        "-F",
+        "--no-front-cover",
+        action="store_true",
+        help="Do not include cover in output file.",
+    )
+    parser.add_argument(
+        "-B",
+        "--no-back-cover",
+        action="store_true",
+        help="Do not include back cover in output file.",
+    )
+    parser.add_argument(
+        "-N",
+        "--no-inner-bleed",
+        action="store_true",
+        help="Do not add bleed to the inner side of the page.",
+    )
+    parser.add_argument(
+        "-G",
+        "--skip-image-generation",
+        action="store_true",
+        help="Skip generating the images. Will use previously generated images. Speeds up execution.",
+    )
+    parser.add_argument(
+        "-I",
+        "--no-images",
+        action="store_true",
+        help="Don't print the images to the PDF. Greatly speeds up execution.",
     )
 
     args = parser.parse_args()
@@ -579,10 +624,12 @@ def main():
         output_dir,
         work_dir,
         length_to_inches(args.bleed_size),
-        args.dont_print_images,
-        args.skip_images,
+        args.no_inner_bleed,
+        args.no_images,
+        args.skip_image_generation,
         xelatex_command,
-        args.no_cover,
+        args.no_front_cover,
+        args.no_back_cover,
         length_to_inches(args.gutter_size),
     )
 
