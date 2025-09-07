@@ -204,6 +204,58 @@
   \newrightpage\thispagestyle{empty}\insertTikzPicture{north east}{#1}
 }
 
+\newcommand{\creditsPage}[2]{
+  \newleftpage\thispagestyle{empty}
+
+  \begingroup
+
+  \newgeometry{
+    inner=\dimexpr0.28in + \gutterSize + \innerBleedSize\relax,
+    outer=\dimexpr0.28in + \bleedSize\relax,
+    bottom=\dimexpr0.45in + \bleedSize\relax,
+    top=\dimexpr0.625in + \bleedSize\relax
+  }
+
+  \setlength{\parindent}{0pt}
+  \setlength{\parskip}{0.9em}
+  \linespread{5.5}
+  \spaceskip=1.5pt
+
+  \athiti\fontsize{7.4}{0.15em}\selectfont
+  \raggedright
+
+  {
+    \setlength{\parskip}{0.75em}\fontsize{12}{1}\selectfont
+    {\fontseries{sb}\selectfont WORLDEND2:} WHAT DO YOU DO AT THE END OF THE WORLD?
+
+    COULD WE MEET AGAIN ONCE MORE?
+  }
+
+  {\fontsize{9}{1}\selectfont AKIRA KARENO}
+
+  Translation by the Orlandri Translation Company \\
+  Cover art by ue
+
+  This book is a work of fiction. Names, characters, places, and incidents are the product of the author's imagination or are used fictitiously. Any resemblance to actual events, locales, or persons, living or dead, is coincidental.
+
+  SHUMATSU NANI SHITEMASUKA? MO ICHIDO DAKE AEMASUKA? \volumeNumberHeaderText \\
+  ©#1 Akira Kareno, ue \\
+  First published in Japan in #1 by KADOKAWA CORPORATION, Tokyo.
+
+  English translation by the Orlandri Translation Company.\\
+  https://orlandritl.wordpress.com
+
+  This print edition is edited and produced by the WorldEnd Formatting Project. \\
+  Visit us at https://worldend.github.io
+
+  The source code for this release can be found at https://github.com/WorldEnd/worldend-formatting
+
+  #2
+  \restoregeometry
+
+  \endgroup
+}
+
 
 \begin{document}
 
