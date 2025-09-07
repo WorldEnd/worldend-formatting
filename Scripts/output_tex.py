@@ -348,10 +348,9 @@ def convert_book(
     env = os.environ.copy()
 
     # We do two passes for two reasons: 1) It resolves an issue with images not
-    # being centered correctly the first time we compile, and 2) In the future,
-    # we're going to implement auto-generation of the table of contents with
-    # correct page numbers, which requires a first pass to actually determine
-    # the page numbers.
+    # being centered correctly the first time we compile, and 2) We auto-generate the
+    # table of contents with correct page numbers, which requires a first pass to
+    # actually determine the page numbers.
     # The first pass doesn't take very long since we don't print the images.
 
     logger.info("==Starting xelatex (first pass)==")
