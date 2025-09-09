@@ -17,10 +17,6 @@ from Lib.config import (
     Book,
     ImagesConfig,
     SingleImage,
-    DoubleImage,
-    FillerImage,
-    TitlePageImage,
-    TOCImage,
     parse_book_config,
     parse_image_config,
 )
@@ -138,13 +134,12 @@ def convert_md_to_html(
 
         letters = iter(string.ascii_lowercase)
 
-    insert_number = 1
-    for insert in images_config.insert_images.values():
-        if not isinstance(insert, (FillerImage, TOCImage, TitlePageImage)):
-            (output_dir / f"insert{insert_number:03}.xhtml").write_text(
-                generator.generate_insert_pages(insert_number)
-            )
-            insert_number += 1
+    for insert_number, insert in enumerate(
+        images_config.non_filler_insert_images(), start=1
+    ):
+        (output_dir / f"insert{insert_number:03}.xhtml").write_text(
+            generator.generate_insert_pages(insert_number)
+        )
 
     (output_dir / "cover.xhtml").write_text(generator.generate_cover_page())
     (output_dir / "nav.xhtml").write_text(generator.generate_nav_xhtml())
@@ -157,39 +152,35 @@ def convert_md_to_html(
 
 
 def process_images(images_config: ImagesConfig, output_dir: Path, isbn: str):
-    insert_image_number = 1
-    chapter_image_number = 1
-    image_type_mapping = {
-        SingleImage: "Art_insert{number:03}.jpg",
-        DoubleImage: "Art_insert{number:03}.jpg",
-        TitlePageImage: "Art_tit.jpg",
-    }
-
     os.makedirs(output_dir, exist_ok=True)
 
     logger.info("==Resizing Images==")
 
     if images_config.front_cover:
         img_info = images_config.front_cover
-        image_name = f"{isbn}.jpg"
         image_path = img_info.absolute_image_path()
-        output_path = output_dir / image_name.format(number=insert_image_number)
+        output_path = output_dir / f"{isbn}.jpg"
         resize_image(image_path, output_path, isinstance(img_info, SingleImage))
 
-    for img_info in images_config.insert_images.values():
-        image_type = type(img_info)
-        if image_type in image_type_mapping:
-            image_name = image_type_mapping[image_type]
-            image_path = img_info.absolute_image_path()
-            output_path = output_dir / image_name.format(number=insert_image_number)
-            resize_image(image_path, output_path, isinstance(img_info, SingleImage))
-            insert_image_number += 1
+    for insert_image_number, img_info in enumerate(
+        images_config.non_filler_insert_images(), start=1
+    ):
+        image_path = img_info.absolute_image_path()
+        output_path = output_dir / f"Art_insert{insert_image_number:03}.jpg"
+        resize_image(image_path, output_path, isinstance(img_info, SingleImage))
 
-    for img_info in images_config.chapter_images.values():
+    if images_config.titlepage:
+        img_info = images_config.titlepage
+        image_path = img_info.absolute_image_path()
+        output_path = output_dir / "Art_tit.jpg"
+        resize_image(image_path, output_path, isinstance(img_info, SingleImage))
+
+    for chapter_image_number, img_info in enumerate(
+        images_config.chapter_images.values(), start=1
+    ):
         image_path = img_info.absolute_image_path()
         output_path = output_dir / f"Art_chapter{chapter_image_number:03}.jpg"
         resize_image(image_path, output_path, isinstance(img_info, SingleImage))
-        chapter_image_number += 1
 
 
 def main():

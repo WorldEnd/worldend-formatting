@@ -15,6 +15,8 @@ insert:
     image_type: double
   insert5.png:
     image_type: single
+
+contents:
   titlepage.png:
     image_type: titlepage
   toc.png:

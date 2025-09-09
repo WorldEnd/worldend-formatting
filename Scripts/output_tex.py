@@ -20,8 +20,13 @@ from Lib.config import (
     Chapter,
     ImageInfo,
     ImagesConfig,
+    GlobalImagesConfig,
     Part,
     TOCImage,
+    FrontCoverImage,
+    BackCoverImage,
+    SingleImage,
+    DoubleImage,
     parse_book_config,
     parse_image_config,
 )
@@ -229,40 +234,26 @@ def convert_chapter(chapter: Chapter, work_dir: Path, content_lines: list[str]):
         convert_part(part, work_dir, content_lines)
 
 
-def image_latex_command(
-    img_info: ImageInfo, no_front_cover: bool, no_back_cover: bool
-) -> str:
+def image_latex_command(img_info: ImageInfo) -> str:
     image_path_string = str(
         PurePosixPath(img_info.relative_image_path().with_suffix(".png"))
     )
-    if img_info.image_type == "double" or img_info.image_type == "toc":
+    if isinstance(img_info, FrontCoverImage):
+        return (
+            rf"\insertSingleImage{in_curlies(image_path_string)}" + "\n\n"
+            r"\newpage\vspace*{\fill}\thispagestyle{empty}\vspace*{\fill}\newpage"
+        )
+    elif isinstance(img_info, BackCoverImage):
+        return (
+            r"\newleftpage\thispagestyle{empty}\insertTikzPicture{north west}"
+            + in_curlies(image_path_string)
+        )
+    elif isinstance(img_info, DoubleImage):  # Double image and subclasses
         return rf"\insertDoubleImage{in_curlies(image_path_string)}"
-    elif (
-        img_info.image_type == "single"
-        or img_info.image_type == "titlepage"
-        or img_info.image_type == "filler"
-    ):
+    elif isinstance(img_info, SingleImage):  # Single image and subclasses
         return rf"\insertSingleImage{in_curlies(image_path_string)}"
-    elif img_info.image_type == "front_cover":
-        return (
-            ""
-            if no_front_cover
-            else (
-                rf"\insertSingleImage{in_curlies(image_path_string)}" + "\n\n"
-                r"\newpage\vspace*{\fill}\thispagestyle{empty}\vspace*{\fill}\newpage"
-            )
-        )
-    elif img_info.image_type == "back_cover":
-        return (
-            ""
-            if no_back_cover
-            else (
-                r"\newleftpage\thispagestyle{empty}\insertTikzPicture{north west}"
-                + in_curlies(image_path_string)
-            )
-        )
     else:
-        raise AssertionError(img_info.image_type)
+        raise AssertionError(str(type(img_info)))
 
 
 def convert_book(
@@ -281,29 +272,38 @@ def convert_book(
 ):
     content_lines = []
 
-    if image_config.front_cover is not None:
-        content_lines.append(
-            image_latex_command(image_config.front_cover, no_front_cover, no_back_cover)
-        )
+    global_image_config = GlobalImagesConfig.from_file(
+        common_dir() / "TeX" / "Images" / "config.yaml"
+    )
+
+    if image_config.front_cover is not None and not no_front_cover:
+        content_lines.append(image_latex_command(image_config.front_cover))
 
     content_lines.extend(
-        image_latex_command(img_info, no_front_cover, no_back_cover)
-        for key, img_info in image_config.insert_images.items()
+        image_latex_command(img_info)
+        for img_info in image_config.insert_images.values()
     )
+
+    # Add a filler before the titlepage if the last image was on an odd page
+    content_lines.extend(
+        [r"\ifodd\value{page}", image_latex_command(global_image_config.filler), r"\fi"]
+    )
+
+    if image_config.titlepage is not None:
+        content_lines.append(image_latex_command(image_config.titlepage))
+
+    if image_config.toc is not None:
+        content_lines.append(image_latex_command(image_config.toc))
 
     for chapter in book_config.chapters:
         img_info = image_config.chapter_images.get(
             list(image_config.chapter_images.keys())[chapter.number - 1]
         )
-        content_lines.append(
-            image_latex_command(img_info, no_front_cover, no_back_cover)
-        )
+        content_lines.append(image_latex_command(img_info))
         convert_chapter(chapter, work_dir, content_lines)
 
-    if image_config.back_cover is not None:
-        content_lines.append(
-            image_latex_command(image_config.back_cover, no_front_cover, no_back_cover)
-        )
+    if image_config.back_cover is not None and not no_back_cover:
+        content_lines.append(image_latex_command(image_config.back_cover))
 
     content_text = "\n\n".join(content_lines)
     (work_dir / "content.tex").write_text(content_text)
@@ -353,15 +353,34 @@ def convert_book(
     # actually determine the page numbers.
     # The first pass doesn't take very long since we don't print the images.
 
+    if not skip_image_generation:
+        generate_images([image_config, global_image_config], work_dir, bleed_size)
+
     logger.info("==Starting xelatex (first pass)==")
     env["TEXINPUTS"] = tex_inputs_no_images
     subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
 
-    if not skip_image_generation:
-        page_numbers = get_page_numbers(page_numbers_file)
-        generate_images(image_config, work_dir, page_numbers, bleed_size)
-
     if not no_images:
+        if image_config.toc is not None:
+            image_info = image_config.toc
+            original_toc_path = image_info.absolute_image_path()
+            toc_with_page_numbers_path = (
+                work_dir / image_info.relative_image_path()
+            ).with_name("temp-toc.png")
+            output_path = (work_dir / image_info.relative_image_path()).with_suffix(
+                ".png"
+            )
+
+            page_numbers = get_page_numbers(page_numbers_file)
+            draw_page_numbers(
+                page_numbers, original_toc_path, toc_with_page_numbers_path
+            )
+            generate_single_image(
+                output_path,
+                toc_with_page_numbers_path,
+                image_info.padding_lrtb(bleed_size),
+            )
+
         logger.info("==Starting xelatex (second pass)==")
         env["TEXINPUTS"] = tex_inputs
         subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
@@ -436,35 +455,40 @@ def draw_page_numbers(page_numbers: list[int], toc_path: Path, output_path: Path
     image.close()
 
 
-def generate_images(
-    config: ImagesConfig, work_dir: Path, page_numbers: list[int], bleed_size: float
-):
-    for image_info in config.all_images_iter():
+def generate_images(configs: "list[ImageInfo]", work_dir: Path, bleed_size: float):
+    for image_info in itertools.chain.from_iterable(
+        c.all_images_iter() for c in configs
+    ):
         input_path = image_info.absolute_image_path()
         output_path = (work_dir / image_info.relative_image_path()).with_suffix(".png")
-        os.makedirs(output_path.parent, exist_ok=True)
+        padding_lrtb = image_info.padding_lrtb(bleed_size)
 
-        if isinstance(image_info, TOCImage):
-            draw_page_numbers(page_numbers, input_path, output_path)
-            input_path = output_path
+        generate_single_image(input_path, output_path, padding_lrtb)
 
-        img = cv2.imread(str(input_path))
-        logger.debug(np.shape(img))
 
-        l, r, t, b = image_info.padding_lrtb(bleed_size)
-        logger.debug((l, r, t, b))
-        mask = np.ones((img.shape[0], img.shape[1]), dtype=np.uint8) * 255
-        mask = crop_and_pad_mat(mask, [(t, b), (l, r)])
-        mask = 255 - mask
-        img = crop_and_pad_mat(img, [(t, b), (l, r)])
-        logger.debug(img.dtype)
-        logger.debug(img.shape)
+def generate_single_image(
+    input_path: Path,
+    output_path: Path,
+    padding_lrtb: "tuple[float, float, float, float]",
+):
+    os.makedirs(output_path.parent, exist_ok=True)
+    img = cv2.imread(str(input_path))
+    logger.debug(np.shape(img))
 
-        cv2.setRNGSeed(42)  # For consistent generation between runs
-        img = cv2.inpaint(img, mask, 2, cv2.INPAINT_TELEA)
+    l, r, t, b = padding_lrtb
+    logger.debug((l, r, t, b))
+    mask = np.ones((img.shape[0], img.shape[1]), dtype=np.uint8) * 255
+    mask = crop_and_pad_mat(mask, [(t, b), (l, r)])
+    mask = 255 - mask
+    img = crop_and_pad_mat(img, [(t, b), (l, r)])
+    logger.debug(img.dtype)
+    logger.debug(img.shape)
 
-        logger.debug(output_path)
-        cv2.imwrite(str(output_path), img)
+    cv2.setRNGSeed(42)  # For consistent generation between runs
+    img = cv2.inpaint(img, mask, 2, cv2.INPAINT_TELEA)
+
+    logger.debug(output_path)
+    cv2.imwrite(str(output_path), img)
 
 
 def crop_and_pad_mat(mat, pad_crop_values):
@@ -617,7 +641,7 @@ def main():
 
     images_config = parse_image_config(book_config.directory / "Images")
 
-    result = convert_book(
+    convert_book(
         book_config,
         images_config,
         output_dir,

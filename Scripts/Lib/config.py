@@ -1,7 +1,6 @@
 import itertools
 import math
 import pint
-import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from pathlib import Path
@@ -17,7 +16,6 @@ except ImportError:
 
 import numpy as np
 import oyaml as yaml
-from numpy.typing import NDArray
 from PIL import Image
 
 from .debug_printable import DebugPrintable
@@ -121,49 +119,24 @@ def parse_book_config(directory: str):
     return book
 
 
-class ImagesConfig(DebugPrintable):
-    front_cover: "ImageInfo"
-    back_cover: "ImageInfo"
-    insert_images: "OrderedDict[str, ImageInfo]"
-    chapter_images: "OrderedDict[str, ImageInfo]"
+class BaseImagesConfig(DebugPrintable):
     directory: Path
 
     def __init__(self):
-        self.front_cover = None
-        self.back_cover = None
-        self.insert_images = OrderedDict()
-        self.chapter_images = OrderedDict()
         self.directory = None
 
-    @staticmethod
-    def from_file(config_file):
+    @classmethod
+    def from_file(cls, config_file):
         config_file = Path(config_file)
         if not config_file.exists():
             print(f"Error: Config file does not exist: '{config_file}'")
             return None
 
         data = yaml.safe_load(config_file.read_text())
-        config = ImagesConfig()
+        config = cls()
         config.directory = config_file.parent.resolve()
         config.parse_yaml(data)
         return config
-
-    def parse_yaml(self, node: dict):
-        for k, v in node["cover"].items():
-            img = self.image_from_yaml(v, k, "Cover")
-            image_type = v.get("image_type")
-            if image_type == "front_cover":
-                self.front_cover = img
-            elif image_type == "back_cover":
-                self.back_cover = img
-
-        for k, v in node["insert"].items():
-            img = self.image_from_yaml(v, k, "Insert")
-            self.insert_images[img.image_title()] = img
-
-        for k, v in node["chapter"].items():
-            img = self.image_from_yaml(v, k, "Chapter")
-            self.chapter_images[img.image_title()] = img
 
     def image_from_yaml(
         self, node: dict, filename: str, subdirectory: str
@@ -191,12 +164,93 @@ class ImagesConfig(DebugPrintable):
         image.parse_yaml(node)
         return image
 
+    @abstractmethod
+    def parse_yaml(self, node: dict):
+        pass
+
+    @abstractmethod
+    def all_images_iter(self) -> Iterator["ImageInfo"]:
+        pass
+
+
+class GlobalImagesConfig(BaseImagesConfig):
+    filler: "ImageInfo"
+
+    def __init__(self):
+        super().__init__()
+        self.filler = None
+
+    @override
+    def parse_yaml(self, node: dict):
+        for k, v in node["contents"].items():
+            img = self.image_from_yaml(v, k, "Contents")
+            image_type = v.get("image_type")
+            if image_type == "filler":
+                self.filler = img
+
+    @override
+    def all_images_iter(self) -> Iterator["ImageInfo"]:
+        return [self.filler] if self.filler else []
+
+
+class ImagesConfig(BaseImagesConfig):
+    front_cover: "ImageInfo"
+    back_cover: "ImageInfo"
+    titlepage: "ImageInfo"
+    toc: "ImageInfo"
+    insert_images: "OrderedDict[str, ImageInfo]"
+    chapter_images: "OrderedDict[str, ImageInfo]"
+
+    def __init__(self):
+        super().__init__()
+        self.front_cover = None
+        self.back_cover = None
+        self.titlepage = None
+        self.toc = None
+        self.insert_images = OrderedDict()
+        self.chapter_images = OrderedDict()
+        self.directory = None
+
+    @override
+    def parse_yaml(self, node: dict):
+        for k, v in node["cover"].items():
+            img = self.image_from_yaml(v, k, "Cover")
+            image_type = v.get("image_type")
+            if image_type == "front_cover":
+                self.front_cover = img
+            elif image_type == "back_cover":
+                self.back_cover = img
+
+        for k, v in node["insert"].items():
+            img = self.image_from_yaml(v, k, "Insert")
+            self.insert_images[img.image_title()] = img
+
+        for k, v in node["contents"].items():
+            img = self.image_from_yaml(v, k, "Contents")
+            image_type = v.get("image_type")
+            if image_type == "titlepage":
+                self.titlepage = img
+            elif image_type == "toc":
+                self.toc = img
+
+        for k, v in node["chapter"].items():
+            img = self.image_from_yaml(v, k, "Chapter")
+            self.chapter_images[img.image_title()] = img
+
+    def non_filler_insert_images(self) -> Iterator["ImageInfo"]:
+        return filter(
+            lambda x: not isinstance(x, FillerImage), self.insert_images.values()
+        )
+
+    @override
     def all_images_iter(self) -> Iterator["ImageInfo"]:
         return itertools.chain(
             self.insert_images.values(),
             self.chapter_images.values(),
             [self.front_cover] if self.front_cover else [],
             [self.back_cover] if self.back_cover else [],
+            [self.titlepage] if self.front_cover else [],
+            [self.toc] if self.toc else [],
         )
 
 
@@ -209,7 +263,7 @@ class ImageInfo(ABC, DebugPrintable):
     height_inches: float
     offset_px: tuple[int, int]
 
-    parent: ImagesConfig
+    parent: BaseImagesConfig
 
     _filename: str
     _subdir: str

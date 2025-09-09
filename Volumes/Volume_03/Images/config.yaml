@@ -5,14 +5,14 @@ cover:
     image_type: back_cover
 
 insert:
-  filler1.png:
+  cover-filler.png:
     image_type: filler
   insert1.png:
     image_type: double
   insert2.png:
     image_type: double
-  filler2.png:
-    image_type: filler
+
+contents:
   titlepage.png:
     image_type: titlepage
   toc.png:
