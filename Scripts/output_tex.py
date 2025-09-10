@@ -22,9 +22,6 @@ from Lib.config import (
     ImagesConfig,
     GlobalImagesConfig,
     Part,
-    TOCImage,
-    FrontCoverImage,
-    BackCoverImage,
     SingleImage,
     DoubleImage,
     parse_book_config,
@@ -167,6 +164,9 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
 
     return get_latex_converter.converter
 
+def isbn_to_string(isbn_number: int) -> str:
+    isbn_str = f"{isbn_number:013}"
+    return f"{isbn_str[:3]}-{isbn_str[3:4]}-{isbn_str[4:8]}-{isbn_str[8:12]}-{isbn_str[12]}"
 
 def format_text(text: str) -> str:
     converted_text = get_latex_converter().unicode_to_latex(text)
@@ -238,17 +238,7 @@ def image_latex_command(img_info: ImageInfo) -> str:
     image_path_string = str(
         PurePosixPath(img_info.relative_image_path().with_suffix(".png"))
     )
-    if isinstance(img_info, FrontCoverImage):
-        return (
-            Rf"\insertSingleImage{in_curlies(image_path_string)}" + "\n\n"
-            R"\newpage\vspace*{\fill}\thispagestyle{empty}\vspace*{\fill}\newpage"
-        )
-    elif isinstance(img_info, BackCoverImage):
-        return (
-            R"\newleftpage\thispagestyle{empty}\insertTikzPicture{north west}"
-            + in_curlies(image_path_string)
-        )
-    elif isinstance(img_info, DoubleImage):  # Double image and subclasses
+    if isinstance(img_info, DoubleImage):  # Double image and subclasses
         return Rf"\insertDoubleImage{in_curlies(image_path_string)}"
     elif isinstance(img_info, SingleImage):  # Single image and subclasses
         return Rf"\insertSingleImage{in_curlies(image_path_string)}"
@@ -277,7 +267,8 @@ def convert_book(
     )
 
     if image_config.front_cover is not None and not no_front_cover:
-        content_lines.append(image_latex_command(image_config.front_cover))
+        content_lines.extend(
+            [image_latex_command(image_config.front_cover), R"\emptypage"])
 
     content_lines.extend(
         image_latex_command(img_info)
@@ -303,7 +294,7 @@ def convert_book(
         convert_chapter(chapter, work_dir, content_lines)
 
     if image_config.back_cover is not None and not no_back_cover:
-        content_lines.append(image_latex_command(image_config.back_cover))
+        content_lines.extend([R"\newleftpage", image_latex_command(image_config.back_cover)])
 
     content_text = "\n\n".join(content_lines)
     (work_dir / "content.tex").write_text(content_text)
@@ -623,7 +614,7 @@ def main():
             version_tag = ""
             logger.error("Could not get git commit hash", exc_info=e)
 
-    logger.info("Version tag: '%s'", version_tag)
+    logger.debug("Version tag: '%s'", version_tag)
 
     input_dir = Path(args.input_dir).absolute()
 

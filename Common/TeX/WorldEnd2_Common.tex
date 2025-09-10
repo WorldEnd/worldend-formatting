@@ -78,8 +78,10 @@
 \usepackage{xstring}
 
 \newcommand{\textof}[2][sb]{{\fontseries{#1}\selectfont #2}}
-\newcommand*\newleftpage{\newpage\ifodd\value{page}\hbox{}\thispagestyle{empty}\newpage\fi}
-\newcommand*\newrightpage{\newpage\ifodd\value{page}\else\hbox{}\thispagestyle{empty}\newpage\fi}
+
+\newcommand*\emptypage{\newpage\hbox{}\thispagestyle{empty}\newpage}
+\newcommand*\newleftpage{\newpage\ifodd\value{page}\emptypage\fi}
+\newcommand*\newrightpage{\newpage\ifodd\value{page}\else\emptypage\fi}
 
 \newenvironment*{SpanEnv}
   { \providecommand{\SpanEnvClose}{} } % begin command
@@ -204,7 +206,8 @@
   \newrightpage\thispagestyle{empty}\insertTikzPicture{north east}{#1}
 }
 
-\newcommand{\creditsPage}[2]{
+% \creditsPage{copyrightYear}{formattedIsbn}{versionTag}
+\newcommand{\creditsPage}[3]{
   \newleftpage\thispagestyle{empty}
 
   \begingroup
@@ -241,7 +244,7 @@
   SHUMATSU NANI SHITEMASUKA? MO ICHIDO DAKE AEMASUKA? \volumeNumberHeaderText \\
   ©#1 Akira Kareno, ue \\
   First published in Japan in #1 by KADOKAWA CORPORATION, Tokyo. 
-  ISBN: TODO
+  ISBN: #2
 
   English translation by the Orlandri Translation Company.\\
   https://orlandritl.wordpress.com
@@ -251,7 +254,7 @@
 
   The source code for this release can be found at https://github.com/WorldEnd/worldend-formatting
 
-  #2
+  #3
   \restoregeometry
 
   \endgroup
