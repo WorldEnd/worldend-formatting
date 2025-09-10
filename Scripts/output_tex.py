@@ -164,9 +164,11 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
 
     return get_latex_converter.converter
 
-def isbn_to_string(isbn_number: int) -> str:
-    isbn_str = f"{isbn_number:013}"
-    return f"{isbn_str[:3]}-{isbn_str[3:4]}-{isbn_str[4:8]}-{isbn_str[8:12]}-{isbn_str[12]}"
+
+def format_isbn(isbn) -> str:
+    isbn = f"{isbn:013}"
+    return f"{isbn[:3]}-{isbn[3:4]}-{isbn[4:8]}-{isbn[8:12]}-{isbn[12]}"
+
 
 def format_text(text: str) -> str:
     converted_text = get_latex_converter().unicode_to_latex(text)
@@ -249,6 +251,7 @@ def image_latex_command(img_info: ImageInfo) -> str:
 def convert_book(
     book_config: Book,
     image_config: ImagesConfig,
+    version_tag: str,
     output_dir: Path,
     work_dir: Path,
     bleed_size=0.0,
@@ -268,7 +271,8 @@ def convert_book(
 
     if image_config.front_cover is not None and not no_front_cover:
         content_lines.extend(
-            [image_latex_command(image_config.front_cover), R"\emptypage"])
+            [image_latex_command(image_config.front_cover), R"\emptypage"]
+        )
 
     content_lines.extend(
         image_latex_command(img_info)
@@ -283,6 +287,10 @@ def convert_book(
     if image_config.titlepage is not None:
         content_lines.append(image_latex_command(image_config.titlepage))
 
+    content_lines.append(
+        Rf"\creditsPage{in_curlies(book_config.publication_year)}{in_curlies(format_isbn(book_config.isbn))}{in_curlies(version_tag)}"
+    )
+
     if image_config.toc is not None:
         content_lines.append(image_latex_command(image_config.toc))
 
@@ -294,7 +302,9 @@ def convert_book(
         convert_chapter(chapter, work_dir, content_lines)
 
     if image_config.back_cover is not None and not no_back_cover:
-        content_lines.extend([R"\newleftpage", image_latex_command(image_config.back_cover)])
+        content_lines.extend(
+            [R"\newleftpage", image_latex_command(image_config.back_cover)]
+        )
 
     content_text = "\n\n".join(content_lines)
     (work_dir / "content.tex").write_text(content_text)
@@ -635,6 +645,7 @@ def main():
     convert_book(
         book_config,
         images_config,
+        version_tag,
         output_dir,
         work_dir,
         length_to_inches(args.bleed_size),

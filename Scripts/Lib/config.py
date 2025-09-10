@@ -26,6 +26,7 @@ class Book(DebugPrintable):
     directory: Path
     volume: int
     isbn: str
+    publication_year: int
 
     # @property
     # def parts(self):
@@ -47,6 +48,7 @@ class Book(DebugPrintable):
     def parse_yaml(self, node: dict):
         self.volume = node["volume_number"]
         self.isbn = node["isbn"]
+        self.publication_year = node["publication_year"]
         self.chapters = []
         for i, c in enumerate(node["chapters"], start=1):
             chapter = Chapter()
@@ -179,6 +181,7 @@ class GlobalImagesConfig(BaseImagesConfig):
     def __init__(self):
         super().__init__()
         self.filler = None
+        self.after_credits = None
 
     @override
     def parse_yaml(self, node: dict):
@@ -213,6 +216,7 @@ class ImagesConfig(BaseImagesConfig):
 
     @override
     def parse_yaml(self, node: dict):
+        # TODO: Change config to front_cover: filepath.png, etc. Remove TitlePageImage, image_type field
         for k, v in node["cover"].items():
             img = self.image_from_yaml(v, k, "Cover")
             image_type = v.get("image_type")
