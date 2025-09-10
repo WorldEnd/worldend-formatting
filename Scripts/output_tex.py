@@ -124,7 +124,7 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
         # enclose something between the start and end command
         def span_replacement(start_command: str, end_command="") -> str:
             return (
-                r"\\begin{SpanEnv}\\renewcommand{\\SpanEnvClose}{"
+                R"\\begin{SpanEnv}\\renewcommand{\\SpanEnvClose}{"
                 + end_command
                 + "}"
                 + start_command
@@ -174,7 +174,7 @@ def format_text(text: str) -> str:
     def transform_paragraph(p: str) -> str:
         p = p.strip()
         if p == "* * *":
-            p = r"\icon"
+            p = R"\icon"
         return p
 
     split_text = regex.split(r"\r?\n\s*\n", converted_text)
@@ -182,15 +182,15 @@ def format_text(text: str) -> str:
     filtered_text = list(filter(lambda x: x and not x.isspace(), transformed_text))
     for i in range(len(filtered_text)):
         if (
-            filtered_text[i] == r"\icon"
+            filtered_text[i] == R"\icon"
             and i + 1 < len(filtered_text)
-            and filtered_text[i + 1] != r"\icon"
+            and filtered_text[i + 1] != R"\icon"
         ):
-            filtered_text[i + 1] = r"\noindent" + "\n" + filtered_text[i + 1]
+            filtered_text[i + 1] = R"\noindent" + "\n" + filtered_text[i + 1]
 
     text = "\n\n".join(filtered_text)
 
-    text = text.replace("\n\n" + r"\\", "\n" + r"\\")
+    text = text.replace("\n\n" + R"\\", "\n" + R"\\")
 
     m = regex.search(r"<[^\r\n<>]+>", text)
     if m is not None:
@@ -211,11 +211,11 @@ def convert_part_text(part: Part, work_dir: Path, content_lines: list[str]):
 
     output_filename.write_text(output_text)
 
-    content_lines.append(rf"\insertPartText{in_curlies(output_filename.name)}")
+    content_lines.append(Rf"\insertPartText{in_curlies(output_filename.name)}")
 
 
 def convert_part(part: Part, work_dir: Path, content_lines: list[str]):
-    content_lines.append(rf"\beginPart{in_curlies(f'{part.number}. {part.title}')}")
+    content_lines.append(Rf"\beginPart{in_curlies(f'{part.number}. {part.title}')}")
     convert_part_text(part, work_dir, content_lines)
 
 
@@ -226,7 +226,7 @@ def convert_chapter(chapter: Chapter, work_dir: Path, content_lines: list[str]):
         part_title_string = f"[{part1.number}. {part1.title}]"
 
     content_lines.append(
-        rf"\beginChapter{part_title_string}{in_curlies(chapter.title)}{in_curlies(chapter.subtitle)}"
+        Rf"\beginChapter{part_title_string}{in_curlies(chapter.title)}{in_curlies(chapter.subtitle)}"
     )
     convert_part_text(part1, work_dir, content_lines)
 
@@ -240,18 +240,18 @@ def image_latex_command(img_info: ImageInfo) -> str:
     )
     if isinstance(img_info, FrontCoverImage):
         return (
-            rf"\insertSingleImage{in_curlies(image_path_string)}" + "\n\n"
-            r"\newpage\vspace*{\fill}\thispagestyle{empty}\vspace*{\fill}\newpage"
+            Rf"\insertSingleImage{in_curlies(image_path_string)}" + "\n\n"
+            R"\newpage\vspace*{\fill}\thispagestyle{empty}\vspace*{\fill}\newpage"
         )
     elif isinstance(img_info, BackCoverImage):
         return (
-            r"\newleftpage\thispagestyle{empty}\insertTikzPicture{north west}"
+            R"\newleftpage\thispagestyle{empty}\insertTikzPicture{north west}"
             + in_curlies(image_path_string)
         )
     elif isinstance(img_info, DoubleImage):  # Double image and subclasses
-        return rf"\insertDoubleImage{in_curlies(image_path_string)}"
+        return Rf"\insertDoubleImage{in_curlies(image_path_string)}"
     elif isinstance(img_info, SingleImage):  # Single image and subclasses
-        return rf"\insertSingleImage{in_curlies(image_path_string)}"
+        return Rf"\insertSingleImage{in_curlies(image_path_string)}"
     else:
         raise AssertionError(str(type(img_info)))
 
@@ -284,9 +284,9 @@ def convert_book(
         for img_info in image_config.insert_images.values()
     )
 
-    # Add a filler before the titlepage if the last image was on an odd page
+    # Add a filler after the insert if the last image was on an odd page
     content_lines.extend(
-        [r"\ifodd\value{page}", image_latex_command(global_image_config.filler), r"\fi"]
+        [R"\ifodd\value{page}", image_latex_command(global_image_config.filler), R"\fi"]
     )
 
     if image_config.titlepage is not None:
@@ -309,13 +309,13 @@ def convert_book(
     (work_dir / "content.tex").write_text(content_text)
 
     config_lines = [
-        r"\newcommand{\volumeNumberHeaderText}{Vol." + str(book_config.volume) + "}",
-        rf"\newcommand{{\bleedSize}}{in_curlies((str(bleed_size) + 'in'))}",
-        rf"\newcommand{{\innerBleedSize}}{in_curlies((str(0.0 if no_inner_bleed else bleed_size) + 'in'))}",
-        rf"\newcommand{{\gutterSize}}{in_curlies(str(gutter_size) + 'in')}",
+        R"\newcommand{\volumeNumberHeaderText}{Vol." + str(book_config.volume) + "}",
+        Rf"\newcommand{{\bleedSize}}{in_curlies((str(bleed_size) + 'in'))}",
+        Rf"\newcommand{{\innerBleedSize}}{in_curlies((str(0.0 if no_inner_bleed else bleed_size) + 'in'))}",
+        Rf"\newcommand{{\gutterSize}}{in_curlies(str(gutter_size) + 'in')}",
     ]
     if no_images:
-        config_lines.append(r"\providecommand{\dontPrintImages}{}")
+        config_lines.append(R"\providecommand{\dontPrintImages}{}")
 
     config_text = "\n".join(config_lines)
     (work_dir / "config.tex").write_text(config_text)
