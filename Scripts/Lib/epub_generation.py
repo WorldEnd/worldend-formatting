@@ -2,10 +2,6 @@ from .config import (
     Chapter,
     Book,
     ImagesConfig,
-    CoverImage,
-    FillerImage,
-    TOCImage,
-    TitlePageImage,
 )
 
 import regex
@@ -368,10 +364,6 @@ class EPUBGenerator:
         )
 
     def generate_package_opf(self, combined_chapters: dict[int, list[list[str]]]):
-        is_insert = lambda insert: not isinstance(
-            insert, (CoverImage, FillerImage, TOCImage, TitlePageImage)
-        )
-
         text = self.replace_text(
             '<package xmlns="http://www.idpf.org/2007/opf" version="3.0" xml:lang="en" unique-identifier="pub-id">\n'
             '  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">\n'
@@ -401,8 +393,7 @@ class EPUBGenerator:
 
         text += self.replace_text(
             '    <item href="insert{COUNTER:03}.xhtml" id="insert{COUNTER:03}" media-type="application/xhtml+xml"/>\n',
-            self.images_config.insert_images.values(),
-            conditional_function=is_insert,
+            self.images_config.non_filler_insert_images(),
         )
 
         text += (
@@ -427,8 +418,7 @@ class EPUBGenerator:
 
         text += self.replace_text(
             '    <item href="images/Art_insert{COUNTER:03}.jpg" id="aArt_insert{COUNTER:03}" media-type="image/jpeg"/>\n',
-            self.images_config.insert_images.values(),
-            conditional_function=is_insert,
+            self.images_config.non_filler_insert_images(),
         )
 
         text += '    <item href="images/Art_line1.jpg" id="aArt_line1" media-type="image/jpeg"/>\n'
@@ -448,8 +438,7 @@ class EPUBGenerator:
 
         text += self.replace_text(
             '    <itemref idref="insert{COUNTER:03}" linear="yes"/>\n',
-            self.images_config.insert_images.values(),
-            conditional_function=is_insert,
+            self.images_config.non_filler_insert_images(),
         )
 
         text += (

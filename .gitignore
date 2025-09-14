@@ -12,3 +12,6 @@ WorkDir/
 *.synctex.*
 *.page-numbers.txt
 *.log
+*.fdb_latexmk
+*.fls
+*.xdv
