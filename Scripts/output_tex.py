@@ -20,12 +20,16 @@ from Lib.config import (
     Chapter,
     ImageInfo,
     ImagesConfig,
+    GlobalImagesConfig,
     Part,
-    TOCImage,
+    SingleImage,
+    DoubleImage,
     parse_book_config,
     parse_image_config,
 )
 from Lib.project_dirs import common_dir
+from Lib.git_info import curr_git_commit_hash_with_dirty
+
 from PIL import Image, ImageDraw, ImageFont
 from pylatexenc.latexencode import (
     RULE_REGEX,
@@ -117,7 +121,7 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
         # enclose something between the start and end command
         def span_replacement(start_command: str, end_command="") -> str:
             return (
-                r"\\begin{SpanEnv}\\renewcommand{\\SpanEnvClose}{"
+                R"\\begin{SpanEnv}\\renewcommand{\\SpanEnvClose}{"
                 + end_command
                 + "}"
                 + start_command
@@ -161,13 +165,18 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
     return get_latex_converter.converter
 
 
+def format_isbn(isbn) -> str:
+    isbn = f"{isbn:013}"
+    return f"{isbn[:3]}-{isbn[3:4]}-{isbn[4:8]}-{isbn[8:12]}-{isbn[12]}"
+
+
 def format_text(text: str) -> str:
     converted_text = get_latex_converter().unicode_to_latex(text)
 
     def transform_paragraph(p: str) -> str:
         p = p.strip()
         if p == "* * *":
-            p = r"\icon"
+            p = R"\icon"
         return p
 
     split_text = regex.split(r"\r?\n\s*\n", converted_text)
@@ -175,15 +184,15 @@ def format_text(text: str) -> str:
     filtered_text = list(filter(lambda x: x and not x.isspace(), transformed_text))
     for i in range(len(filtered_text)):
         if (
-            filtered_text[i] == r"\icon"
+            filtered_text[i] == R"\icon"
             and i + 1 < len(filtered_text)
-            and filtered_text[i + 1] != r"\icon"
+            and filtered_text[i + 1] != R"\icon"
         ):
-            filtered_text[i + 1] = r"\noindent" + "\n" + filtered_text[i + 1]
+            filtered_text[i + 1] = R"\noindent" + "\n" + filtered_text[i + 1]
 
     text = "\n\n".join(filtered_text)
 
-    text = text.replace("\n\n" + r"\\", "\n" + r"\\")
+    text = text.replace("\n\n" + R"\\", "\n" + R"\\")
 
     m = regex.search(r"<[^\r\n<>]+>", text)
     if m is not None:
@@ -204,11 +213,11 @@ def convert_part_text(part: Part, work_dir: Path, content_lines: list[str]):
 
     output_filename.write_text(output_text)
 
-    content_lines.append(rf"\insertPartText{in_curlies(output_filename.name)}")
+    content_lines.append(Rf"\insertPartText{in_curlies(output_filename.name)}")
 
 
 def convert_part(part: Part, work_dir: Path, content_lines: list[str]):
-    content_lines.append(rf"\beginPart{in_curlies(f'{part.number}. {part.title}')}")
+    content_lines.append(Rf"\beginPart{in_curlies(f'{part.number}. {part.title}')}")
     convert_part_text(part, work_dir, content_lines)
 
 
@@ -219,7 +228,7 @@ def convert_chapter(chapter: Chapter, work_dir: Path, content_lines: list[str]):
         part_title_string = f"[{part1.number}. {part1.title}]"
 
     content_lines.append(
-        rf"\beginChapter{part_title_string}{in_curlies(chapter.title)}{in_curlies(chapter.subtitle)}"
+        Rf"\beginChapter{part_title_string}{in_curlies(chapter.title)}{in_curlies(chapter.subtitle)}"
     )
     convert_part_text(part1, work_dir, content_lines)
 
@@ -227,45 +236,22 @@ def convert_chapter(chapter: Chapter, work_dir: Path, content_lines: list[str]):
         convert_part(part, work_dir, content_lines)
 
 
-def image_latex_command(
-    img_info: ImageInfo, no_front_cover: bool, no_back_cover: bool
-) -> str:
+def image_latex_command(img_info: ImageInfo) -> str:
     image_path_string = str(
         PurePosixPath(img_info.relative_image_path().with_suffix(".png"))
     )
-    if img_info.image_type == "double" or img_info.image_type == "toc":
-        return rf"\insertDoubleImage{in_curlies(image_path_string)}"
-    elif (
-        img_info.image_type == "single"
-        or img_info.image_type == "titlepage"
-        or img_info.image_type == "filler"
-    ):
-        return rf"\insertSingleImage{in_curlies(image_path_string)}"
-    elif img_info.image_type == "front_cover":
-        return (
-            ""
-            if no_front_cover
-            else (
-                rf"\insertSingleImage{in_curlies(image_path_string)}" + "\n\n"
-                r"\newpage\vspace*{\fill}\thispagestyle{empty}\vspace*{\fill}\newpage"
-            )
-        )
-    elif img_info.image_type == "back_cover":
-        return (
-            ""
-            if no_back_cover
-            else (
-                r"\newleftpage\thispagestyle{empty}\insertTikzPicture{north west}"
-                + in_curlies(image_path_string)
-            )
-        )
+    if isinstance(img_info, DoubleImage):  # Double image and subclasses
+        return Rf"\insertDoubleImage{in_curlies(image_path_string)}"
+    elif isinstance(img_info, SingleImage):  # Single image and subclasses
+        return Rf"\insertSingleImage{in_curlies(image_path_string)}"
     else:
-        raise AssertionError(img_info.image_type)
+        raise AssertionError(str(type(img_info)))
 
 
 def convert_book(
     book_config: Book,
     image_config: ImagesConfig,
+    version_tag: str,
     output_dir: Path,
     work_dir: Path,
     bleed_size=0.0,
@@ -279,41 +265,64 @@ def convert_book(
 ):
     content_lines = []
 
-    if image_config.front_cover is not None:
-        content_lines.append(
-            image_latex_command(image_config.front_cover, no_front_cover, no_back_cover)
+    global_image_config = GlobalImagesConfig.from_file(
+        common_dir() / "TeX" / "Images" / "config.yaml"
+    )
+
+    if image_config.front_cover is not None and not no_front_cover:
+        content_lines.extend(
+            [image_latex_command(image_config.front_cover), R"\emptypage"]
         )
 
     content_lines.extend(
-        image_latex_command(img_info, no_front_cover, no_back_cover)
-        for key, img_info in image_config.insert_images.items()
+        image_latex_command(img_info) for img_info in image_config.insert_images
     )
 
+    if image_config.titlepage is not None:
+        content_lines.extend(
+            [
+                # Add a filler after the insert if the last image was on an odd page
+                R"\ifodd\value{page}",
+                image_latex_command(global_image_config.insert_filler),
+                R"\fi",
+                image_latex_command(image_config.titlepage),
+            ]
+        )
+
+    credits_background_path = (
+        global_image_config.credits_background.relative_image_path().with_suffix(".png")
+    )
+    content_lines.extend(
+        [
+            Rf"\creditsPage{in_curlies(credits_background_path)}{in_curlies(book_config.publication_year)}{in_curlies(format_isbn(book_config.isbn))}{in_curlies(version_tag)}",
+            image_latex_command(global_image_config.after_credits),
+        ]
+    )
+
+    if image_config.toc is not None:
+        content_lines.append(image_latex_command(image_config.toc))
+
     for chapter in book_config.chapters:
-        img_info = image_config.chapter_images.get(
-            list(image_config.chapter_images.keys())[chapter.number - 1]
-        )
-        content_lines.append(
-            image_latex_command(img_info, no_front_cover, no_back_cover)
-        )
+        img_info = image_config.chapter_images[chapter.number]
+        content_lines.append(image_latex_command(img_info))
         convert_chapter(chapter, work_dir, content_lines)
 
-    if image_config.back_cover is not None:
-        content_lines.append(
-            image_latex_command(image_config.back_cover, no_front_cover, no_back_cover)
+    if image_config.back_cover is not None and not no_back_cover:
+        content_lines.extend(
+            [R"\newleftpage", image_latex_command(image_config.back_cover)]
         )
 
     content_text = "\n\n".join(content_lines)
     (work_dir / "content.tex").write_text(content_text)
 
     config_lines = [
-        r"\newcommand{\volumeNumberHeaderText}{Vol." + str(book_config.volume) + "}",
-        rf"\newcommand{{\bleedSize}}{in_curlies((str(bleed_size) + 'in'))}",
-        rf"\newcommand{{\innerBleedSize}}{in_curlies((str(0.0 if no_inner_bleed else bleed_size) + 'in'))}",
-        rf"\newcommand{{\gutterSize}}{in_curlies(str(gutter_size) + 'in')}",
+        R"\newcommand{\volumeNumberHeaderText}{Vol." + str(book_config.volume) + "}",
+        Rf"\newcommand{{\bleedSize}}{in_curlies((str(bleed_size) + 'in'))}",
+        Rf"\newcommand{{\innerBleedSize}}{in_curlies((str(0.0 if no_inner_bleed else bleed_size) + 'in'))}",
+        Rf"\newcommand{{\gutterSize}}{in_curlies(str(gutter_size) + 'in')}",
     ]
     if no_images:
-        config_lines.append(r"\providecommand{\dontPrintImages}{}")
+        config_lines.append(R"\providecommand{\dontPrintImages}{}")
 
     config_text = "\n".join(config_lines)
     (work_dir / "config.tex").write_text(config_text)
@@ -346,21 +355,39 @@ def convert_book(
     env = os.environ.copy()
 
     # We do two passes for two reasons: 1) It resolves an issue with images not
-    # being centered correctly the first time we compile, and 2) In the future,
-    # we're going to implement auto-generation of the table of contents with
-    # correct page numbers, which requires a first pass to actually determine
-    # the page numbers.
+    # being centered correctly the first time we compile, and 2) We auto-generate the
+    # table of contents with correct page numbers, which requires a first pass to
+    # actually determine the page numbers.
     # The first pass doesn't take very long since we don't print the images.
+
+    if not skip_image_generation:
+        generate_images([image_config, global_image_config], work_dir, bleed_size)
 
     logger.info("==Starting xelatex (first pass)==")
     env["TEXINPUTS"] = tex_inputs_no_images
     subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
 
-    if not skip_image_generation:
-        page_numbers = get_page_numbers(page_numbers_file)
-        generate_images(image_config, work_dir, page_numbers, bleed_size)
-
     if not no_images:
+        if image_config.toc is not None:
+            image_info = image_config.toc
+            original_toc_path = image_info.absolute_image_path()
+            toc_with_page_numbers_path = (
+                work_dir / image_info.relative_image_path()
+            ).with_name("temp-toc.png")
+            output_path = (work_dir / image_info.relative_image_path()).with_suffix(
+                ".png"
+            )
+
+            page_numbers = get_page_numbers(page_numbers_file)
+            draw_page_numbers(
+                page_numbers, original_toc_path, toc_with_page_numbers_path
+            )
+            generate_single_image(
+                toc_with_page_numbers_path,
+                output_path,
+                image_info.padding_lrtb(bleed_size),
+            )
+
         logger.info("==Starting xelatex (second pass)==")
         env["TEXINPUTS"] = tex_inputs
         subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
@@ -435,35 +462,40 @@ def draw_page_numbers(page_numbers: list[int], toc_path: Path, output_path: Path
     image.close()
 
 
-def generate_images(
-    config: ImagesConfig, work_dir: Path, page_numbers: list[int], bleed_size: float
-):
-    for image_info in config.all_images_iter():
+def generate_images(configs: "list[ImageInfo]", work_dir: Path, bleed_size: float):
+    for image_info in itertools.chain.from_iterable(
+        c.all_images_iter() for c in configs
+    ):
         input_path = image_info.absolute_image_path()
         output_path = (work_dir / image_info.relative_image_path()).with_suffix(".png")
-        os.makedirs(output_path.parent, exist_ok=True)
+        padding_lrtb = image_info.padding_lrtb(bleed_size)
 
-        if isinstance(image_info, TOCImage):
-            draw_page_numbers(page_numbers, input_path, output_path)
-            input_path = output_path
+        generate_single_image(input_path, output_path, padding_lrtb)
 
-        img = cv2.imread(str(input_path))
-        logger.debug(np.shape(img))
 
-        l, r, t, b = image_info.padding_lrtb(bleed_size)
-        logger.debug((l, r, t, b))
-        mask = np.ones((img.shape[0], img.shape[1]), dtype=np.uint8) * 255
-        mask = crop_and_pad_mat(mask, [(t, b), (l, r)])
-        mask = 255 - mask
-        img = crop_and_pad_mat(img, [(t, b), (l, r)])
-        logger.debug(img.dtype)
-        logger.debug(img.shape)
+def generate_single_image(
+    input_path: Path,
+    output_path: Path,
+    padding_lrtb: "tuple[float, float, float, float]",
+):
+    os.makedirs(output_path.parent, exist_ok=True)
+    img = cv2.imread(str(input_path))
+    logger.debug(np.shape(img))
 
-        cv2.setRNGSeed(42)  # For consistent generation between runs
-        img = cv2.inpaint(img, mask, 2, cv2.INPAINT_TELEA)
+    l, r, t, b = padding_lrtb
+    logger.debug((l, r, t, b))
+    mask = np.ones((img.shape[0], img.shape[1]), dtype=np.uint8) * 255
+    mask = crop_and_pad_mat(mask, [(t, b), (l, r)])
+    mask = 255 - mask
+    img = crop_and_pad_mat(img, [(t, b), (l, r)])
+    logger.debug(img.dtype)
+    logger.debug(img.shape)
 
-        logger.debug(output_path)
-        cv2.imwrite(str(output_path), img)
+    cv2.setRNGSeed(42)  # For consistent generation between runs
+    img = cv2.inpaint(img, mask, 2, cv2.INPAINT_TELEA)
+
+    logger.debug(output_path)
+    cv2.imwrite(str(output_path), img)
 
 
 def crop_and_pad_mat(mat, pad_crop_values):
@@ -494,7 +526,7 @@ def cv2_to_pil(img, from_space="BGR", to_space="RGB"):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="md_to_tex",
+        prog="output_tex",
         description="Converts the input .md files to .tex files.",
         formatter_class=ColorHelpFormatter,
         add_help=False,
@@ -539,12 +571,19 @@ def main():
         help=f"Allow overriding the command used to call xelatex. This will be formatted with `{colors.faint('str.format')}`, with keyword arguments MODE (optional to preserve verbosity), OUTPUT_DIRECTORY, JOB_NAME, and TEX_FILE. The default is `{colors.faint(xelatex_default_miktex)}` for MiKTeX, and `{colors.faint(xelatex_default_texlive)}` for TeX Live and other TeX distributions.",
     )
     parser.add_argument(
+        "--version-tag",
+        type=str,
+        help=f"A text string describing the current book version, to be included in the credits page. If omitted, the current git commit hash (determined by `{colors.faint('git rev-parse')}`) is used",
+    ),
+
+    parser.add_argument(
         "-p",
         "--print-mode",
         action=PrintMode,
         nargs=0,
         help=f"Activate print mode, short for `{colors.faint('-b 0.125in -g 0.15in -F -B')}`",
     )
+
     parser.add_argument(
         "-F",
         "--no-front-cover",
@@ -583,6 +622,16 @@ def main():
 
     xelatex_command = args.xelatex_command_line or get_xelatex_command()
 
+    version_tag = args.version_tag
+    if version_tag is None:
+        try:
+            version_tag = curr_git_commit_hash_with_dirty()
+        except Exception as e:
+            version_tag = ""
+            logger.error("Could not get git commit hash", exc_info=e)
+
+    logger.debug("Version tag: '%s'", version_tag)
+
     input_dir = Path(args.input_dir).absolute()
 
     book_config = parse_book_config(input_dir)
@@ -599,9 +648,10 @@ def main():
 
     images_config = parse_image_config(book_config.directory / "Images")
 
-    result = convert_book(
+    convert_book(
         book_config,
         images_config,
+        version_tag,
         output_dir,
         work_dir,
         length_to_inches(args.bleed_size),
