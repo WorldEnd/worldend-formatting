@@ -383,8 +383,8 @@ def convert_book(
                 page_numbers, original_toc_path, toc_with_page_numbers_path
             )
             generate_single_image(
-                output_path,
                 toc_with_page_numbers_path,
+                output_path,
                 image_info.padding_lrtb(bleed_size),
             )
 
