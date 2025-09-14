@@ -1,35 +1,35 @@
-cover:
-  front.png:
-    image_type: front_cover
-  back.png:
-    image_type: back_cover
+front_cover:
+  filepath: "Cover/front.png"
+
+back_cover:
+  filepath: "Cover/back.png"
+
+titlepage:
+  filepath: "Contents/titlepage.png"
+
+table_of_contents:
+  filepath: "Contents/toc.png"
 
 insert:
-  insert1.png:
-    image_type: single
-  insert2.png:
-    image_type: double
-  insert3.png:
-    image_type: double
-  insert4.png:
-    image_type: double
-  insert5.png:
-    image_type: single
-
-contents:
-  titlepage.png:
-    image_type: titlepage
-  toc.png:
-    image_type: toc
+  - filepath: "Insert/insert1.png"
+    image_type: "single"
+  - filepath: "Insert/insert2.png"
+    image_type: "double"
+  - filepath: "Insert/insert3.png"
+    image_type: "double"
+  - filepath: "Insert/insert4.png"
+    image_type: "double"
+  - filepath: "Insert/insert5.png"
+    image_type: "single"
 
 chapter:
-  1.png:
-    image_type: double
-  2.png:
-    image_type: double
-  3.png:
-    image_type: double
-  4.png:
-    image_type: double
-  5.png:
-    image_type: double
+  1:
+    filepath: "Chapter/1.png"
+  2:
+    filepath: "Chapter/2.png"
+  3:
+    filepath: "Chapter/3.png"
+  4:
+    filepath: "Chapter/4.png"
+  5:
+    filepath: "Chapter/5.png"

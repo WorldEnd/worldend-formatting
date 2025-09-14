@@ -175,11 +175,9 @@ def process_images(images_config: ImagesConfig, output_dir: Path, isbn: str):
         output_path = output_dir / "Art_tit.jpg"
         resize_image(image_path, output_path, isinstance(img_info, SingleImage))
 
-    for chapter_image_number, img_info in enumerate(
-        images_config.chapter_images.values(), start=1
-    ):
+    for chapter_number, img_info in images_config.chapter_images.items():
         image_path = img_info.absolute_image_path()
-        output_path = output_dir / f"Art_chapter{chapter_image_number:03}.jpg"
+        output_path = output_dir / f"Art_chapter{chapter_number:03}.jpg"
         resize_image(image_path, output_path, isinstance(img_info, SingleImage))
 
 

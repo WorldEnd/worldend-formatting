@@ -275,16 +275,18 @@ def convert_book(
         )
 
     content_lines.extend(
-        image_latex_command(img_info)
-        for img_info in image_config.insert_images.values()
-    )
-
-    # Add a filler after the insert if the last image was on an odd page
-    content_lines.extend(
-        [R"\ifodd\value{page}", image_latex_command(global_image_config.filler), R"\fi"]
+        image_latex_command(img_info) for img_info in image_config.insert_images
     )
 
     if image_config.titlepage is not None:
+        # Add a filler after the insert if the last image was on an odd page
+        content_lines.extend(
+            [
+                R"\ifodd\value{page}",
+                image_latex_command(global_image_config.insert_filler),
+                R"\fi",
+            ]
+        )
         content_lines.append(image_latex_command(image_config.titlepage))
 
     content_lines.append(
@@ -295,9 +297,7 @@ def convert_book(
         content_lines.append(image_latex_command(image_config.toc))
 
     for chapter in book_config.chapters:
-        img_info = image_config.chapter_images.get(
-            list(image_config.chapter_images.keys())[chapter.number - 1]
-        )
+        img_info = image_config.chapter_images[chapter.number]
         content_lines.append(image_latex_command(img_info))
         convert_chapter(chapter, work_dir, content_lines)
 

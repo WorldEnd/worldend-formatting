@@ -1,3 +1,2 @@
-contents:
-  before-titlepage-optional-filler.png:
-    image_type: filler
+insert_filler:
+  filepath: "Contents/before-titlepage-optional-filler.png"

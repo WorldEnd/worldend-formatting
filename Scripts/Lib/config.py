@@ -140,31 +140,11 @@ class BaseImagesConfig(DebugPrintable):
         config.parse_yaml(data)
         return config
 
-    def image_from_yaml(
-        self, node: dict, filename: str, subdirectory: str
-    ) -> "ImageInfo":
-        match node["image_type"]:
-            case "single":
-                image = SingleImage()
-            case "double":
-                image = DoubleImage()
-            case "front_cover":
-                image = FrontCoverImage()
-            case "back_cover":
-                image = BackCoverImage()
-            case "filler":
-                image = FillerImage()
-            case "titlepage":
-                image = TitlePageImage()
-            case "toc":
-                image = TOCImage()
-            case _:
-                raise ValueError(f"Unexpected image type `{node['image_type']}`")
-        image.parent = self
-        image._filename = filename
-        image._subdir = subdirectory
-        image.parse_yaml(node)
-        return image
+    def image_from_yaml(self, node: dict, default_image_type=None) -> "ImageInfo":
+        image_class_map = {"single": SingleImage, "double": DoubleImage}
+        image_class = image_class_map[node.get("image_type", default_image_type)]
+
+        return image_class(self, node)
 
     @abstractmethod
     def parse_yaml(self, node: dict):
@@ -176,24 +156,20 @@ class BaseImagesConfig(DebugPrintable):
 
 
 class GlobalImagesConfig(BaseImagesConfig):
-    filler: "ImageInfo"
+    insert_filler: "ImageInfo"
 
     def __init__(self):
         super().__init__()
-        self.filler = None
-        self.after_credits = None
+        self.insert_filler = None
 
     @override
     def parse_yaml(self, node: dict):
-        for k, v in node["contents"].items():
-            img = self.image_from_yaml(v, k, "Contents")
-            image_type = v.get("image_type")
-            if image_type == "filler":
-                self.filler = img
+        self.insert_filler = self.image_from_yaml(node["insert_filler"], "single")
+        self.insert_filler.is_filler = True
 
     @override
     def all_images_iter(self) -> Iterator["ImageInfo"]:
-        return [self.filler] if self.filler else []
+        return [self.insert_filler] if self.insert_filler else []
 
 
 class ImagesConfig(BaseImagesConfig):
@@ -201,8 +177,8 @@ class ImagesConfig(BaseImagesConfig):
     back_cover: "ImageInfo"
     titlepage: "ImageInfo"
     toc: "ImageInfo"
-    insert_images: "OrderedDict[str, ImageInfo]"
-    chapter_images: "OrderedDict[str, ImageInfo]"
+    insert_images: "list[ImageInfo]"
+    chapter_images: "OrderedDict[int, ImageInfo]"
 
     def __init__(self):
         super().__init__()
@@ -210,46 +186,32 @@ class ImagesConfig(BaseImagesConfig):
         self.back_cover = None
         self.titlepage = None
         self.toc = None
-        self.insert_images = OrderedDict()
+        self.insert_images = []
         self.chapter_images = OrderedDict()
         self.directory = None
 
     @override
     def parse_yaml(self, node: dict):
-        # TODO: Change config to front_cover: filepath.png, etc. Remove TitlePageImage, image_type field
-        for k, v in node["cover"].items():
-            img = self.image_from_yaml(v, k, "Cover")
-            image_type = v.get("image_type")
-            if image_type == "front_cover":
-                self.front_cover = img
-            elif image_type == "back_cover":
-                self.back_cover = img
+        self.front_cover = self.image_from_yaml(node["front_cover"], "single")
+        self.back_cover = self.image_from_yaml(node["back_cover"], "single")
+        self.titlepage = self.image_from_yaml(node["titlepage"], "single")
+        self.toc = self.image_from_yaml(node["table_of_contents"], "double")
 
-        for k, v in node["insert"].items():
-            img = self.image_from_yaml(v, k, "Insert")
-            self.insert_images[img.image_title()] = img
+        for image_node in node["insert"]:
+            self.insert_images.append(self.image_from_yaml(image_node))
 
-        for k, v in node["contents"].items():
-            img = self.image_from_yaml(v, k, "Contents")
-            image_type = v.get("image_type")
-            if image_type == "titlepage":
-                self.titlepage = img
-            elif image_type == "toc":
-                self.toc = img
-
-        for k, v in node["chapter"].items():
-            img = self.image_from_yaml(v, k, "Chapter")
-            self.chapter_images[img.image_title()] = img
+        for chapter_number, image_node in node["chapter"].items():
+            self.chapter_images[int(chapter_number)] = self.image_from_yaml(
+                image_node, "double"
+            )
 
     def non_filler_insert_images(self) -> Iterator["ImageInfo"]:
-        return filter(
-            lambda x: not isinstance(x, FillerImage), self.insert_images.values()
-        )
+        return filter(lambda x: not x.is_filler, self.insert_images)
 
     @override
     def all_images_iter(self) -> Iterator["ImageInfo"]:
         return itertools.chain(
-            self.insert_images.values(),
+            self.insert_images,
             self.chapter_images.values(),
             [self.front_cover] if self.front_cover else [],
             [self.back_cover] if self.back_cover else [],
@@ -263,17 +225,27 @@ PAPER_H_IN = 8.25
 
 
 class ImageInfo(ABC, DebugPrintable):
-    image_type: Literal["single", "double"]
-    height_inches: float
-    offset_px: tuple[int, int]
-
     parent: BaseImagesConfig
+    is_filler: bool
+    _filepath: str
+    _height_inches: float
+    _offset_px: tuple[int, int]
 
-    _filename: str
-    _subdir: str
+    def __init__(self, parent_config: BaseImagesConfig, yaml_node: dict):
+        self.parent = parent_config
+        self.is_filler = yaml_node.get("filler", False)
+        self._filepath = yaml_node["filepath"]
 
-    hI: int = 0
-    vI: int = 1
+        self._height_inches = PAPER_H_IN
+        if "height" in yaml_node:
+            self._height_inches = self.length_to_inches(yaml_node["height"])
+
+        self._offset_px = (0, 0)
+        if "offset" in yaml_node:
+            offset_list = yaml_node["offset"]
+            if len(offset_list) != 2:
+                raise ValueError(offset_list)
+            self._offset_px = tuple(self.length_to_px(offset) for offset in offset_list)
 
     def length_to_unit(self, length: str, unit: str) -> float:
         ureg = pint.UnitRegistry()
@@ -294,32 +266,12 @@ class ImageInfo(ABC, DebugPrintable):
     def length_to_px(self, length: str) -> int:
         return round(self.length_to_unit(length, "px"))
 
-    def parse_yaml(self, node: dict):
-        self.image_type = node["image_type"]
-
-        self.height_inches = PAPER_H_IN
-        if "height" in node:
-            self.height_inches = self.length_to_inches(node["height"])
-
-        self.offset_px = (0, 0)
-        if "offset" in node:
-            offset_list = node["offset"]
-            if len(offset_list) != 2:
-                raise ValueError(offset_list)
-            self.offset_px = tuple(self.length_to_px(offset) for offset in offset_list)
-
     @abstractmethod
     def canvas_size_px(self, bleed_size: float) -> tuple[int, int]:
         pass
 
-    def image_title(self) -> str:
-        return Path(self._filename).stem
-
-    def image_filename(self) -> str:
-        return self._filename
-
     def relative_image_path(self) -> Path:
-        return Path(self._subdir, self._filename)
+        return Path(self._filepath)
 
     def absolute_image_path(self) -> Path:
         return self.parent.directory / self.relative_image_path()
@@ -327,7 +279,7 @@ class ImageInfo(ABC, DebugPrintable):
     def padding_lrtb(self, bleed_size: float) -> tuple[int, int, int, int]:
         canvas_w, canvas_h = self.canvas_size_px(bleed_size)
         img_w, img_h = self.size_px
-        offset_w, offset_h = self.offset_px
+        offset_w, offset_h = self._offset_px
 
         assert (canvas_w - img_w) % 2 == 0, f"({canvas_w}, {img_w})"
         assert (canvas_h - img_h) % 2 == 0, f"({canvas_h}, {img_h})"
@@ -359,7 +311,7 @@ class ImageInfo(ABC, DebugPrintable):
 
     @property
     def px_per_in(self) -> float:
-        return self.height_px / self.height_inches
+        return self.height_px / self._height_inches
 
 
 class SingleImage(ImageInfo):
@@ -370,35 +322,15 @@ class SingleImage(ImageInfo):
         )
 
 
-class TitlePageImage(SingleImage):
-    pass
-
-
-class CoverImage(SingleImage):
-    pass
-
-
-class FrontCoverImage(CoverImage):
-    pass
-
-
-class BackCoverImage(CoverImage):
-    pass
-
-
-class FillerImage(SingleImage):
-    pass
-
-
 class DoubleImage(ImageInfo):
-    overlap_px: int
+    _overlap_px: int
 
-    @override
-    def parse_yaml(self, node: dict):
-        super().parse_yaml(node)
-        self.overlap_px = 0
-        if "overlap" in node:
-            self.overlap_px = self.length_to_px(node["overlap"])
+    def __init__(self, parent_config: BaseImagesConfig, yaml_node: dict):
+        super().__init__(parent_config, yaml_node)
+
+        self._overlap_px = 0
+        if "overlap" in yaml_node:
+            self._overlap_px = self.length_to_px(yaml_node["overlap"])
 
     @override
     def canvas_size_px(self, bleed_size: float) -> tuple[int, int]:
@@ -408,12 +340,8 @@ class DoubleImage(ImageInfo):
             self.px_per_in,
             self.width_px,
             self.height_px,
-            self.overlap_px,
+            self._overlap_px,
         )
-
-
-class TOCImage(DoubleImage):
-    pass
 
 
 def _canvas_size_px_helper(
