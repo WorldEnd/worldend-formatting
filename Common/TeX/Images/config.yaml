@@ -1,2 +1,8 @@
 insert_filler:
-  filepath: "Contents/before-titlepage-optional-filler.png"
+  filepath: "Global/before-titlepage-optional-filler.png"
+
+after_credits:
+  filepath: "Global/after-credits.png"
+
+credits_background:
+  filepath: "Global/credits-background.png"

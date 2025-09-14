@@ -157,19 +157,31 @@ class BaseImagesConfig(DebugPrintable):
 
 class GlobalImagesConfig(BaseImagesConfig):
     insert_filler: "ImageInfo"
+    credits_background: "ImageInfo"
+    after_credits: "ImageInfo"
 
     def __init__(self):
         super().__init__()
         self.insert_filler = None
+        self.credits_background = None
+        self.after_credits = None
 
     @override
     def parse_yaml(self, node: dict):
         self.insert_filler = self.image_from_yaml(node["insert_filler"], "single")
         self.insert_filler.is_filler = True
 
+        self.credits_background = self.image_from_yaml(
+            node["credits_background"], "single"
+        )
+        self.after_credits = self.image_from_yaml(node["after_credits"], "single")
+
     @override
     def all_images_iter(self) -> Iterator["ImageInfo"]:
-        return [self.insert_filler] if self.insert_filler else []
+        return filter(
+            lambda x: x is not None,
+            [self.insert_filler, self.credits_background, self.after_credits],
+        )
 
 
 class ImagesConfig(BaseImagesConfig):
@@ -213,10 +225,10 @@ class ImagesConfig(BaseImagesConfig):
         return itertools.chain(
             self.insert_images,
             self.chapter_images.values(),
-            [self.front_cover] if self.front_cover else [],
-            [self.back_cover] if self.back_cover else [],
-            [self.titlepage] if self.front_cover else [],
-            [self.toc] if self.toc else [],
+            filter(
+                lambda x: x is not None,
+                [self.front_cover, self.back_cover, self.titlepage, self.toc],
+            ),
         )
 
 

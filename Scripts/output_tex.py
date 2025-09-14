@@ -279,18 +279,24 @@ def convert_book(
     )
 
     if image_config.titlepage is not None:
-        # Add a filler after the insert if the last image was on an odd page
         content_lines.extend(
             [
+                # Add a filler after the insert if the last image was on an odd page
                 R"\ifodd\value{page}",
                 image_latex_command(global_image_config.insert_filler),
                 R"\fi",
+                image_latex_command(image_config.titlepage),
             ]
         )
-        content_lines.append(image_latex_command(image_config.titlepage))
 
-    content_lines.append(
-        Rf"\creditsPage{in_curlies(book_config.publication_year)}{in_curlies(format_isbn(book_config.isbn))}{in_curlies(version_tag)}"
+    credits_background_path = (
+        global_image_config.credits_background.relative_image_path().with_suffix(".png")
+    )
+    content_lines.extend(
+        [
+            Rf"\creditsPage{in_curlies(credits_background_path)}{in_curlies(book_config.publication_year)}{in_curlies(format_isbn(book_config.isbn))}{in_curlies(version_tag)}",
+            image_latex_command(global_image_config.after_credits),
+        ]
     )
 
     if image_config.toc is not None:

@@ -178,36 +178,35 @@
 
 
 % ======= Image Commands =======
-\newcommand{\insertTikzPicture}[2]{%
+
+\newcommand{\tikzPicture}[3]{%
   \begin{tikzpicture}[remember picture,overlay,every node/.style={inner sep=0,outer sep=0}]
     \node[anchor=#1,yshift=0pt,xshift=0pt] at (current page.#1) {%
       \ifx\dontPrintImages\undefined
-        \includegraphics[height=\paperheight]{#2}%
+        \includegraphics[height=#2]{#3}%
       \else
-        \phantom{\includegraphics[height=\paperheight]{#2}}%
+        \phantom{\includegraphics[height=#2]{#3}}%
       \fi
     };
   \end{tikzpicture}%
 }
 
+\newcommand{\fullPageImage}[1]{%
+  \tikzPicture{\ifodd\value{page}north east\else north west\fi}{\paperheight}{#1}
+}
+
 \newcommand{\insertSingleImage}[1]{
   \newpage\thispagestyle{empty}%
-  \begingroup
-    \ifodd\value{page}
-      \insertTikzPicture{north east}{#1}%
-    \else
-      \insertTikzPicture{north west}{#1}%
-    \fi
-  \endgroup
+  \fullPageImage{#1}
 }
 
 \newcommand{\insertDoubleImage}[1]{
-  \newleftpage\thispagestyle{empty}\insertTikzPicture{north west}{#1}
-  \newrightpage\thispagestyle{empty}\insertTikzPicture{north east}{#1}
+  \newleftpage\thispagestyle{empty}\fullPageImage{#1}
+  \newrightpage\thispagestyle{empty}\fullPageImage{#1}
 }
 
-% \creditsPage{copyrightYear}{formattedIsbn}{versionTag}
-\newcommand{\creditsPage}[3]{
+% \creditsPage{backgroundImage}{copyrightYear}{formattedIsbn}{versionTag}
+\newcommand{\creditsPage}[4]{
   \newleftpage\thispagestyle{empty}
 
   \begingroup
@@ -218,6 +217,8 @@
     bottom=\dimexpr0.45in + \bleedSize\relax,
     top=\dimexpr0.625in + \bleedSize\relax
   }
+
+  \fullPageImage{#1}
 
   \setlength{\parindent}{0pt}
   \setlength{\parskip}{0.9em}
@@ -242,9 +243,9 @@
   This book is a work of fiction. Names, characters, places, and incidents are the product of the author's imagination or are used fictitiously. Any resemblance to actual events, locales, or persons, living or dead, is coincidental.
 
   SHUMATSU NANI SHITEMASUKA? MO ICHIDO DAKE AEMASUKA? \volumeNumberHeaderText \\
-  ©#1 Akira Kareno, ue \\
-  First published in Japan in #1 by KADOKAWA CORPORATION, Tokyo. \\
-  ISBN: #2
+  ©#2 Akira Kareno, ue \\
+  First published in Japan in #2 by KADOKAWA CORPORATION, Tokyo. \\
+  ISBN: #3
 
   English translation by the Orlandri Translation Company.\\
   https://orlandritl.wordpress.com
@@ -252,7 +253,7 @@
   This print edition is edited and produced by the WorldEnd Formatting Project. \\
   Visit us at https://worldend.github.io
 
-  Release: #3 \\
+  Release: #4 \\
   The source code for this release can be found at https://github.com/WorldEnd/worldend-formatting
 
   \restoregeometry
