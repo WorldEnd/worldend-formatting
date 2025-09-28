@@ -48,9 +48,15 @@
     BoldFont = *-Bold,
     FontFace={el}{n}{*-ExtraLight},
     FontFace={l}{n}{*-Light},
-    FontFace={m}{n}{*-Medium},
+    FontFace={md}{n}{*-Medium},
     FontFace={sb}{n}{*-SemiBold},
+    FontFace={b}{n}{*-Bold},
 ]{Athiti}
+
+\newfontfamily{\fakt}[Path = Fonts/Fakt/,
+    Extension = .ttf,
+    UprightFont = *-Regular,
+]{Fakt-Soft}
 
 \setmainfont [ Path = Fonts/AGaramondPro/,
     Extension = .ttf,
@@ -98,7 +104,7 @@
 
 \fancyhf{} % clear all header fields
 \fancyhead[LE,RO]{\athiti\fontsize{7}{1}\selectfont \textof[m]{\thepage}}
-\fancyhead[CE]{\athiti\fontsize{7}{1}\selectfont \hspace{0.25in}{\fontseries{sb}\selectfont WORLDEND2}: \textof[m]{What Do You Do at the End of the World? Could We Meet Again Once More?,} \textof[el]{\volumeNumberHeaderText}}
+\fancyhead[CE]{\athiti\fontsize{7}{1}\selectfont \hspace{0.25in}{\fontseries{sb}\selectfont WORLDEND2}: \textof[m]{What Do You Do at the End of the World? Could We Meet Again Once More?,} \textof[el]{Vol.\volumeNumber}}
 \renewcommand{\headrulewidth}{0pt}
 
 \newcommand{\setChapterTitleInHeader}[2]{\fancyhead[CO]{\athiti\fontsize{7.5}{1}\selectfont \textof[sb]{\uppercase{#1}} \textof[m]{-{\lowercase{#2}}-}\hspace{0.25in}}}
@@ -215,37 +221,37 @@
     inner=\dimexpr0.28in + \gutterSize + \innerBleedSize\relax,
     outer=\dimexpr0.28in + \bleedSize\relax,
     bottom=\dimexpr0.45in + \bleedSize\relax,
-    top=\dimexpr0.625in + \bleedSize\relax
+    top=\dimexpr0.45in + \bleedSize\relax
   }
 
   \fullPageImage{#1}
 
   \setlength{\parindent}{0pt}
-  \setlength{\parskip}{0.9em}
+  \setlength{\parskip}{0.85em}
   \linespread{5.5}
   \spaceskip=1.5pt
 
-  \athiti\fontsize{7.4}{0.15em}\selectfont
+  \fakt\fontsize{6.25}{0.15em}\selectfont
   \raggedright
 
   {
-    \setlength{\parskip}{0.75em}\athiti\fontsize{12}{1}\selectfont
-    {\fontseries{sb}\selectfont WORLDEND2:} WHAT DO YOU DO AT THE END OF THE WORLD?
+    \setlength{\parskip}{0.5em}\athiti\fontsize{11}{1}\selectfont
+    {\fontseries{b}\selectfont WORLDEND2:} {\fontseries{md}\selectfont WHAT DO YOU DO AT THE END OF THE WORLD?
 
-    COULD WE MEET AGAIN ONCE MORE?
+    COULD WE MEET AGAIN ONCE MORE?}
   }
 
-  {\fontsize{9}{1}\selectfont AKIRA KARENO}
+  {\fontsize{7}{1}\selectfont AKIRA KARENO}
 
   Translation by the Orlandri Translation Company \\
   Cover art by ue
 
   This book is a work of fiction. Names, characters, places, and incidents are the product of the author's imagination or are used fictitiously. Any resemblance to actual events, locales, or persons, living or dead, is coincidental.
 
-  SHUMATSU NANI SHITEMASUKA? MO ICHIDO DAKE AEMASUKA? \volumeNumberHeaderText \\
+  SHUMATSU NANI SHITEMASUKA? MO ICHIDO DAKE AEMASUKA? Vol.~\volumeNumber \\
   ©#2 Akira Kareno, ue \\
   First published in Japan in #2 by KADOKAWA CORPORATION, Tokyo. \\
-  ISBN: #3
+  ISBN: #3 (original)
 
   English translation by the Orlandri Translation Company.\\
   https://orlandritl.wordpress.com
