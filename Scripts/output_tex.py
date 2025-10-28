@@ -304,6 +304,12 @@ def convert_book(
 
     for chapter in book_config.chapters:
         img_info = image_config.chapter_images[chapter.number]
+        content_lines.append(rf"\newleftpage")
+        content_lines.append(rf"\phantomsection")
+        content_lines.append(
+            rf"\pdfbookmark[1]{{{chapter.title}}}{{chap:{chapter.number}}}"
+        )
+
         content_lines.append(image_latex_command(img_info))
         convert_chapter(chapter, work_dir, content_lines)
 

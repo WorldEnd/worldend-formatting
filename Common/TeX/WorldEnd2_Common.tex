@@ -39,6 +39,15 @@
 \linespread{1.25}
 
 
+% ======= Bookmarks =======
+\usepackage[
+  unicode,
+  hidelinks,
+  bookmarksopen,
+  bookmarksnumbered
+]{hyperref}
+
+
 % ======= Fonts =======
 \usepackage[no-math]{fontspec}
 
@@ -165,6 +174,17 @@
   \pagestyle{fancy}
   \startAtPageNumber{5}
   \thispagestyle{empty} %The blank space when starting a new chapter is 9 lines. The section title (if it exists) is around the middle, a bit below line 5
+  \def\temppartname{#1}%
+  \def\defaultname{\phantom{No header}}%
+  \ifx\temppartname\defaultname
+    % empty
+  \else
+    \ifx\temppartname\empty
+      % empty
+    \else
+      \pdfbookmark[2]{#1}{part:#1}%
+    \fi
+  \fi
   \vphantom{1}\par\vphantom{2}\par\vphantom{3}\par\vphantom{4}\par
   \noindent\vphantom{5}\begin{picture}(0, 0)\put(0, -0.3\baselineskip){\sectionTitleStyle #1}\end{picture}\par
   \vphantom{6}\par\vphantom{7}\par\vphantom{8}\par\vphantom{9}
@@ -175,6 +195,7 @@
   % The blank space when starting a new section is 3 lines. The section title is around the middle, a bit below line 2
   \vphantom{1}
   
+  \pdfbookmark[2]{#1}{part:#1}
   \noindent\vphantom{2}\begin{picture}(0, 0)\put(0, -0.09\baselineskip){\sectionTitleStyle #1}\end{picture}
   
   \vphantom{3}
