@@ -392,11 +392,9 @@ def convert_book(
                 image_info.padding_lrtb(bleed_size),
             )
 
-    # We need the second pass even if we aren't printing images, so that the page numbers output
-    # by hyperref are correct
-    logger.info("==Starting xelatex (second pass)==")
-    env["TEXINPUTS"] = tex_inputs
-    subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
+        logger.info("==Starting xelatex (second pass)==")
+        env["TEXINPUTS"] = tex_inputs
+        subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
 
     logger.info("==Finished xelatex==")
     intermediate_output_file = intermediate_output_directory / (output_stem + ".pdf")
