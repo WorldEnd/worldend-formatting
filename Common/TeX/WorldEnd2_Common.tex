@@ -95,8 +95,8 @@
 \newcommand{\textof}[2][sb]{{\fontseries{#1}\selectfont #2}}
 
 \newcommand*\emptypage{\newpage\hbox{}\thispagestyle{empty}\newpage}
-\newcommand*\newleftpage{\newpage\ifodd\value{page}\emptypage\fi}
-\newcommand*\newrightpage{\newpage\ifodd\value{page}\else\emptypage\fi}
+\newcommand*\newleftpage{\newpage\ifodd\value{realpage}\emptypage\fi}
+\newcommand*\newrightpage{\newpage\ifodd\value{realpage}\else\emptypage\fi}
 
 \newenvironment*{SpanEnv}
   { \providecommand{\SpanEnvClose}{} } % begin command
@@ -120,15 +120,16 @@
 
 
 % ======= Page Number =======
-\setcounter{page}{-9999}
+\pagenumbering{roman}
 
-% Reset the page number to arg1 if this is the first time we have called this command
-\newcommand{\startAtPageNumber}[1]{
-  \ifnum0>\thepage\relax
-    \setcounter{page}{#1}
-  \fi
+\usepackage{xassoccnt}
+
+% We need this "realpage" counter so that newleftpage and newrightpage work as expected
+\newcounter{realpage}
+\DeclareAssociatedCounters{page}{realpage}
+\AtBeginDocument{%
+  \stepcounter{realpage}
 }
-
 
 % ======= Typography =======
 \setlength{\lefthyphenmin}{2}
@@ -153,56 +154,6 @@
 \newcommand{\EllipsisSplittable}{\Ellipsis \penalty50}
 
 
-% ======= Content Commands =======
-\newcommand{\icon}{
-  % The icon takes up 3 lines
-  % We use `realcenter` since `center` adds vertical space
-  \begin{realcenter}
-    \vphantom{1}
-
-    \vphantom{2}\raisebox{-0.07in}[0em][0em]{\includegraphics[height=0.22in]{Images/ornament.png}}\vphantom{2}
-
-    \vphantom{3}
-  \end{realcenter}
-}
-
-\newcommand{\sectionTitleStyle}{\athiti\fontsize{11}{11}\fontseries{sb}\selectfont}
-
-\newcommand{\beginChapter}[3][{\phantom{No header}}]{
-  \newrightpage
-  \setChapterTitleInHeader{#2}{#3}
-  \pagestyle{fancy}
-  \startAtPageNumber{5}
-  \thispagestyle{empty} %The blank space when starting a new chapter is 9 lines. The section title (if it exists) is around the middle, a bit below line 5
-  \def\temppartname{#1}%
-  \def\defaultname{\phantom{No header}}%
-  \ifx\temppartname\defaultname
-    % empty
-  \else
-    \ifx\temppartname\empty
-      % empty
-    \else
-      \pdfbookmark[2]{#1}{part:#1}%
-    \fi
-  \fi
-  \vphantom{1}\par\vphantom{2}\par\vphantom{3}\par\vphantom{4}\par
-  \noindent\vphantom{5}\begin{picture}(0, 0)\put(0, -0.3\baselineskip){\sectionTitleStyle #1}\end{picture}\par
-  \vphantom{6}\par\vphantom{7}\par\vphantom{8}\par\vphantom{9}
-  \write\pageNumbersFile{ChapterPageNumber: \thepage}
-}
-
-\newcommand{\beginPart}[1]{
-  % The blank space when starting a new section is 3 lines. The section title is around the middle, a bit below line 2
-  \vphantom{1}
-  
-  \pdfbookmark[2]{#1}{part:#1}
-  \noindent\vphantom{2}\begin{picture}(0, 0)\put(0, -0.09\baselineskip){\sectionTitleStyle #1}\end{picture}
-  
-  \vphantom{3}
-}
-
-\newcommand{\insertPartText}[1]{\noindent\input{#1}}
-
 
 % ======= Image Commands =======
 
@@ -219,7 +170,7 @@
 }
 
 \newcommand{\fullPageImage}[1]{%
-  \tikzPicture{\ifodd\value{page}north east\else north west\fi}{\paperheight}{#1}
+  \tikzPicture{\ifodd\value{realpage}north east\else north west\fi}{\paperheight}{#1}
 }
 
 \newcommand{\insertSingleImage}[1]{
@@ -227,9 +178,94 @@
   \fullPageImage{#1}
 }
 
-\newcommand{\insertDoubleImage}[1]{
-  \newleftpage\thispagestyle{empty}\fullPageImage{#1}
-  \newrightpage\thispagestyle{empty}\fullPageImage{#1}
+% \insertDoubleImage[command between pages]{image filename}
+\newcommand{\insertDoubleImage}[2][\empty]{
+  \newleftpage\thispagestyle{empty}\fullPageImage{#2}
+  {#1}
+  \newrightpage\thispagestyle{empty}\fullPageImage{#2}
+}
+
+
+% ======= Content Commands =======
+\newcommand{\icon}{
+  % The icon takes up 3 lines
+  % We use `realcenter` since `center` adds vertical space
+  \begin{realcenter}
+    \vphantom{1}
+
+    \vphantom{2}\raisebox{-0.07in}[0em][0em]{\includegraphics[height=0.22in]{Images/ornament.png}}\vphantom{2}
+
+    \vphantom{3}
+  \end{realcenter}
+}
+
+\newcommand{\sectionTitleStyle}{\athiti\fontsize{11}{11}\fontseries{sb}\selectfont}
+
+% These conuted chapter numbers are mainly used for bookmarks 
+\newcounter{ChapterNum}
+\newcounter{PartNum}
+
+% \ifEmptyElse{condition}{value if empty}{value if nonempty}
+\newcommand{\ifEmptyElse}[3]{
+  \def\tempparam{#1}\ifx\tempparam\empty #2 \else #3 \fi
+}
+
+\newcommand{\atTopOfPage}[1]{
+  \begin{tikzpicture}[remember picture,overlay,every node/.style={inner sep=0,outer sep=0}]
+    \node[anchor=north,yshift=0pt,xshift=0pt] at (current page.north) {%
+      #1
+    };
+  \end{tikzpicture}%
+}
+
+\newcommand{\addPdfBookmarkForChapter}[1]{
+  \pdfbookmark[1]{#1}{chap:\theChapterNum}
+}
+
+\newcommand{\addPdfBookmarkForPart}[1]{
+  \pdfbookmark[2]{#1}{part:\theChapterNum.\thePartNum}
+}
+
+% \beginChapter[part 1 name]{chapter title}{chapter subtitle}{image command}
+\newcommand{\beginChapter}[4][\empty]{
+  % Increment the chapter number and set the part number to 1
+  \stepcounter{ChapterNum}
+  \setcounter{PartNum}{1}
+
+  % Insert the chapter image, setting the PDF bookmark for the chapter to the first page
+  % of the image
+  \insertDoubleImage[\atTopOfPage{\addPdfBookmarkForChapter{#2}}]{#4}
+
+  \newrightpage
+  \setChapterTitleInHeader{#2}{#3}
+  \pagestyle{fancy}
+  \thispagestyle{empty}
+
+  %The blank space when starting a new chapter is 9 lines. The part title (if it exists) is around the middle, a bit below line 5
+  \vphantom{1}\par\vphantom{2}\par\vphantom{3}\par\vphantom{4}\ifEmptyElse{#1}{}{\addPdfBookmarkForPart{#1}}\par
+  \noindent\vphantom{5}\begin{picture}(0, 0)\put(0, -0.3\baselineskip){\sectionTitleStyle #1}\end{picture}\par
+  \vphantom{6}\par\vphantom{7}\par\vphantom{8}\par\vphantom{9}
+  \write\pageNumbersFile{ChapterPageNumber: \thepage}
+}
+
+\newcommand{\beginPart}[1]{
+  \stepcounter{PartNum} % Increment the part number
+
+  % The blank space when starting a new section is 3 lines. The section title is around the middle, a bit below line 2
+  \vphantom{1}\addPdfBookmarkForPart{#1}
+
+  \noindent\vphantom{2}\begin{picture}(0, 0)\put(0, -0.09\baselineskip){\sectionTitleStyle #1}\end{picture}
+  
+  \vphantom{3}
+}
+
+\newcommand{\insertPartText}[1]{\noindent\input{#1}}
+
+\newcommand{\insertTableOfContents}[1]{
+  \insertDoubleImage{#1}
+
+  % The second page of the TOC is counted as "page 1"
+  \setcounter{page}{1}\pagenumbering{arabic}
 }
 
 % \creditsPage{backgroundImage}{copyrightYear}{formattedIsbn}{versionTag}

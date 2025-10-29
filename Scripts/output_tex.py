@@ -221,14 +221,16 @@ def convert_part(part: Part, work_dir: Path, content_lines: list[str]):
     convert_part_text(part, work_dir, content_lines)
 
 
-def convert_chapter(chapter: Chapter, work_dir: Path, content_lines: list[str]):
+def convert_chapter(
+    chapter: Chapter, work_dir: Path, content_lines: list[str], img_info: ImageInfo
+):
     part1 = chapter.parts[0]
     part_title_string = ""
     if part1.title is not None:
         part_title_string = f"[{part1.number}. {part1.title}]"
 
     content_lines.append(
-        Rf"\beginChapter{part_title_string}{in_curlies(chapter.title)}{in_curlies(chapter.subtitle)}"
+        Rf"\beginChapter{part_title_string}{in_curlies(chapter.title)}{in_curlies(chapter.subtitle)}{in_curlies(image_latex_path(img_info))}"
     )
     convert_part_text(part1, work_dir, content_lines)
 
@@ -236,10 +238,12 @@ def convert_chapter(chapter: Chapter, work_dir: Path, content_lines: list[str]):
         convert_part(part, work_dir, content_lines)
 
 
+def image_latex_path(img_info: ImageInfo) -> str:
+    return img_info.relative_image_path().with_suffix(".png").as_posix()
+
+
 def image_latex_command(img_info: ImageInfo) -> str:
-    image_path_string = str(
-        PurePosixPath(img_info.relative_image_path().with_suffix(".png"))
-    )
+    image_path_string = image_latex_path(img_info)
     if isinstance(img_info, DoubleImage):  # Double image and subclasses
         return Rf"\insertDoubleImage{in_curlies(image_path_string)}"
     elif isinstance(img_info, SingleImage):  # Single image and subclasses
@@ -282,7 +286,7 @@ def convert_book(
         content_lines.extend(
             [
                 # Add a filler after the insert if the last image was on an odd page
-                R"\ifodd\value{page}",
+                R"\ifodd\value{realpage}",
                 image_latex_command(global_image_config.insert_filler),
                 R"\fi",
                 image_latex_command(image_config.titlepage),
@@ -299,19 +303,13 @@ def convert_book(
         ]
     )
 
-    if image_config.toc is not None:
-        content_lines.append(image_latex_command(image_config.toc))
+    content_lines.append(
+        Rf"\insertTableOfContents{in_curlies(image_latex_path(image_config.toc))}"
+    )
 
     for chapter in book_config.chapters:
         img_info = image_config.chapter_images[chapter.number]
-        content_lines.append(rf"\newleftpage")
-        content_lines.append(rf"\phantomsection")
-        content_lines.append(
-            rf"\pdfbookmark[1]{{{chapter.title}}}{{chap:{chapter.number}}}"
-        )
-
-        content_lines.append(image_latex_command(img_info))
-        convert_chapter(chapter, work_dir, content_lines)
+        convert_chapter(chapter, work_dir, content_lines, img_info)
 
     if image_config.back_cover is not None and not no_back_cover:
         content_lines.extend(
@@ -394,9 +392,11 @@ def convert_book(
                 image_info.padding_lrtb(bleed_size),
             )
 
-        logger.info("==Starting xelatex (second pass)==")
-        env["TEXINPUTS"] = tex_inputs
-        subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
+    # We need the second pass even if we aren't printing images, so that the page numbers output
+    # by hyperref are correct
+    logger.info("==Starting xelatex (second pass)==")
+    env["TEXINPUTS"] = tex_inputs
+    subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
 
     logger.info("==Finished xelatex==")
     intermediate_output_file = intermediate_output_directory / (output_stem + ".pdf")
