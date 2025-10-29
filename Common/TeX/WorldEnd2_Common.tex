@@ -48,6 +48,14 @@
 ]{hyperref}
 
 
+\newcommand{\addPdfBookmarkForChapter}[1]{
+  \pdfbookmark[1]{#1}{chap:\theChapterNum}
+}
+
+\newcommand{\addPdfBookmarkForPart}[1]{
+  \pdfbookmark[2]{#1}{part:\theChapterNum.\thePartNum}
+}
+
 % ======= Fonts =======
 \usepackage[no-math]{fontspec}
 
@@ -107,6 +115,20 @@
  { \par\noindent\ignorespacesafterend }
 
 
+% \ifEmptyElse{condition}{value if empty}{value if nonempty}
+\newcommand{\ifEmptyElse}[3]{
+  \def\tempparam{#1}\ifx\tempparam\empty #2 \else #3 \fi
+}
+
+\newcommand{\atTopOfPage}[1]{
+  \begin{tikzpicture}[remember picture,overlay,every node/.style={inner sep=0,outer sep=0}]
+    \node[anchor=north,yshift=0pt,xshift=0pt] at (current page.north) {%
+      #1
+    };
+  \end{tikzpicture}%
+}
+
+
 % ======= Header =======
 \usepackage{fancyhdr}
 \setlength{\footskip}{5pt}
@@ -154,38 +176,6 @@
 \newcommand{\EllipsisSplittable}{\Ellipsis \penalty50}
 
 
-
-% ======= Image Commands =======
-
-\newcommand{\tikzPicture}[3]{%
-  \begin{tikzpicture}[remember picture,overlay,every node/.style={inner sep=0,outer sep=0}]
-    \node[anchor=#1,yshift=0pt,xshift=0pt] at (current page.#1) {%
-      \ifx\dontPrintImages\undefined
-        \includegraphics[height=#2]{#3}%
-      \else
-        \phantom{\includegraphics[height=#2]{#3}}%
-      \fi
-    };
-  \end{tikzpicture}%
-}
-
-\newcommand{\fullPageImage}[1]{%
-  \tikzPicture{\ifodd\value{realpage}north east\else north west\fi}{\paperheight}{#1}
-}
-
-\newcommand{\insertSingleImage}[1]{
-  \newpage\thispagestyle{empty}%
-  \fullPageImage{#1}
-}
-
-% \insertDoubleImage[command between pages]{image filename}
-\newcommand{\insertDoubleImage}[2][\empty]{
-  \newleftpage\thispagestyle{empty}\fullPageImage{#2}
-  {#1}
-  \newrightpage\thispagestyle{empty}\fullPageImage{#2}
-}
-
-
 % ======= Content Commands =======
 \newcommand{\icon}{
   % The icon takes up 3 lines
@@ -201,30 +191,9 @@
 
 \newcommand{\sectionTitleStyle}{\athiti\fontsize{11}{11}\fontseries{sb}\selectfont}
 
-% These conuted chapter numbers are mainly used for bookmarks 
+% These counted chapter numbers are mainly used for bookmarks 
 \newcounter{ChapterNum}
 \newcounter{PartNum}
-
-% \ifEmptyElse{condition}{value if empty}{value if nonempty}
-\newcommand{\ifEmptyElse}[3]{
-  \def\tempparam{#1}\ifx\tempparam\empty #2 \else #3 \fi
-}
-
-\newcommand{\atTopOfPage}[1]{
-  \begin{tikzpicture}[remember picture,overlay,every node/.style={inner sep=0,outer sep=0}]
-    \node[anchor=north,yshift=0pt,xshift=0pt] at (current page.north) {%
-      #1
-    };
-  \end{tikzpicture}%
-}
-
-\newcommand{\addPdfBookmarkForChapter}[1]{
-  \pdfbookmark[1]{#1}{chap:\theChapterNum}
-}
-
-\newcommand{\addPdfBookmarkForPart}[1]{
-  \pdfbookmark[2]{#1}{part:\theChapterNum.\thePartNum}
-}
 
 % \beginChapter[part 1 name]{chapter title}{chapter subtitle}{image command}
 \newcommand{\beginChapter}[4][\empty]{
@@ -267,6 +236,40 @@
   % The second page of the TOC is counted as "page 1"
   \setcounter{page}{1}\pagenumbering{arabic}
 }
+
+
+% ======= Image Commands =======
+
+\newcommand{\tikzPicture}[3]{%
+  \begin{tikzpicture}[remember picture,overlay,every node/.style={inner sep=0,outer sep=0}]
+    \node[anchor=#1,yshift=0pt,xshift=0pt] at (current page.#1) {%
+      \ifx\dontPrintImages\undefined
+        \includegraphics[height=#2]{#3}%
+      \else
+        \phantom{\includegraphics[height=#2]{#3}}%
+      \fi
+    };
+  \end{tikzpicture}%
+}
+
+\newcommand{\fullPageImage}[1]{%
+  \tikzPicture{\ifodd\value{realpage}north east\else north west\fi}{\paperheight}{#1}
+}
+
+\newcommand{\insertSingleImage}[1]{
+  \newpage\thispagestyle{empty}%
+  \fullPageImage{#1}
+}
+
+% \insertDoubleImage[command between pages]{image filename}
+\newcommand{\insertDoubleImage}[2][\empty]{
+  \newleftpage\thispagestyle{empty}\fullPageImage{#2}
+  {#1}
+  \newrightpage\thispagestyle{empty}\fullPageImage{#2}
+}
+
+
+% ======= Credits page =======
 
 % \creditsPage{backgroundImage}{copyrightYear}{formattedIsbn}{versionTag}
 \newcommand{\creditsPage}[4]{
@@ -326,6 +329,7 @@
   \endgroup
 }
 
+% ======= Document =======
 
 \begin{document}
 
