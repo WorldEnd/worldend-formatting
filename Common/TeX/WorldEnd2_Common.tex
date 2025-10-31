@@ -39,6 +39,23 @@
 \linespread{1.25}
 
 
+% ======= Bookmarks =======
+\usepackage[
+  unicode,
+  hidelinks,
+  bookmarksopen,
+  bookmarksnumbered
+]{hyperref}
+
+
+\newcommand{\addPdfBookmarkForChapter}[1]{
+  \pdfbookmark[1]{#1}{chap:\theChapterNum}
+}
+
+\newcommand{\addPdfBookmarkForPart}[1]{
+  \pdfbookmark[2]{#1}{part:\theChapterNum.\thePartNum}
+}
+
 % ======= Fonts =======
 \usepackage[no-math]{fontspec}
 
@@ -86,8 +103,8 @@
 \newcommand{\textof}[2][sb]{{\fontseries{#1}\selectfont #2}}
 
 \newcommand*\emptypage{\newpage\hbox{}\thispagestyle{empty}\newpage}
-\newcommand*\newleftpage{\newpage\ifodd\value{page}\emptypage\fi}
-\newcommand*\newrightpage{\newpage\ifodd\value{page}\else\emptypage\fi}
+\newcommand*\newleftpage{\newpage\ifodd\value{realpage}\emptypage\fi}
+\newcommand*\newrightpage{\newpage\ifodd\value{realpage}\else\emptypage\fi}
 
 \newenvironment*{SpanEnv}
   { \providecommand{\SpanEnvClose}{} } % begin command
@@ -96,6 +113,15 @@
 \newenvironment{realcenter}
  { \parskip=0pt\par\nopagebreak\centering }
  { \par\noindent\ignorespacesafterend }
+
+
+\newcommand{\atTopOfPage}[1]{
+  \begin{tikzpicture}[remember picture,overlay,every node/.style={inner sep=0,outer sep=0}]
+    \node[anchor=north,yshift=0pt,xshift=0pt] at (current page.north) {%
+      #1
+    };
+  \end{tikzpicture}%
+}
 
 
 % ======= Header =======
@@ -111,15 +137,16 @@
 
 
 % ======= Page Number =======
-\setcounter{page}{-9999}
+\pagenumbering{roman}
 
-% Reset the page number to arg1 if this is the first time we have called this command
-\newcommand{\startAtPageNumber}[1]{
-  \ifnum0>\thepage\relax
-    \setcounter{page}{#1}
-  \fi
+\usepackage{xassoccnt}
+
+% We need this "realpage" counter so that newleftpage and newrightpage work as expected
+\newcounter{realpage}
+\DeclareAssociatedCounters{page}{realpage}
+\AtBeginDocument{%
+  \stepcounter{realpage}
 }
-
 
 % ======= Typography =======
 \setlength{\lefthyphenmin}{2}
@@ -159,28 +186,51 @@
 
 \newcommand{\sectionTitleStyle}{\athiti\fontsize{11}{11}\fontseries{sb}\selectfont}
 
-\newcommand{\beginChapter}[3][{\phantom{No header}}]{
+% These counted chapter numbers are mainly used for bookmarks 
+\newcounter{ChapterNum}
+\newcounter{PartNum}
+
+% \beginChapter[part 1 name]{chapter title}{chapter subtitle}{image command}
+\newcommand{\beginChapter}[4][\empty]{
+  % Increment the chapter number and set the part number to 1
+  \stepcounter{ChapterNum}
+  \setcounter{PartNum}{1}
+
+  % Insert the chapter image, setting the PDF bookmark for the chapter to the first page
+  % of the image
+  \insertDoubleImage[\atTopOfPage{\addPdfBookmarkForChapter{#2}}]{#4}
+
   \newrightpage
   \setChapterTitleInHeader{#2}{#3}
   \pagestyle{fancy}
-  \startAtPageNumber{5}
-  \thispagestyle{empty} %The blank space when starting a new chapter is 9 lines. The section title (if it exists) is around the middle, a bit below line 5
-  \vphantom{1}\par\vphantom{2}\par\vphantom{3}\par\vphantom{4}\par
+  \thispagestyle{empty}
+
+  % The blank space when starting a new chapter is 9 lines. The part title (if it exists) is around the middle, a bit below line 5
+  \vphantom{1}\par\vphantom{2}\par\vphantom{3}\par\vphantom{4}\IfStrEq{#1}{}{}{\addPdfBookmarkForPart{#1}}\par
   \noindent\vphantom{5}\begin{picture}(0, 0)\put(0, -0.3\baselineskip){\sectionTitleStyle #1}\end{picture}\par
   \vphantom{6}\par\vphantom{7}\par\vphantom{8}\par\vphantom{9}
   \write\pageNumbersFile{ChapterPageNumber: \thepage}
 }
 
 \newcommand{\beginPart}[1]{
+  \stepcounter{PartNum} % Increment the part number
+
   % The blank space when starting a new section is 3 lines. The section title is around the middle, a bit below line 2
-  \vphantom{1}
-  
+  \vphantom{1}\addPdfBookmarkForPart{#1}
+
   \noindent\vphantom{2}\begin{picture}(0, 0)\put(0, -0.09\baselineskip){\sectionTitleStyle #1}\end{picture}
   
   \vphantom{3}
 }
 
 \newcommand{\insertPartText}[1]{\noindent\input{#1}}
+
+\newcommand{\insertTableOfContents}[1]{
+  \insertDoubleImage{#1}
+
+  % The second page of the TOC is counted as "page 1"
+  \setcounter{page}{1}\pagenumbering{arabic}
+}
 
 
 % ======= Image Commands =======
@@ -198,7 +248,7 @@
 }
 
 \newcommand{\fullPageImage}[1]{%
-  \tikzPicture{\ifodd\value{page}north east\else north west\fi}{\paperheight}{#1}
+  \tikzPicture{\ifodd\value{realpage}north east\else north west\fi}{\paperheight}{#1}
 }
 
 \newcommand{\insertSingleImage}[1]{
@@ -206,10 +256,15 @@
   \fullPageImage{#1}
 }
 
-\newcommand{\insertDoubleImage}[1]{
-  \newleftpage\thispagestyle{empty}\fullPageImage{#1}
-  \newrightpage\thispagestyle{empty}\fullPageImage{#1}
+% \insertDoubleImage[command between pages]{image filename}
+\newcommand{\insertDoubleImage}[2][\empty]{
+  \newleftpage\thispagestyle{empty}\fullPageImage{#2}
+  {#1}
+  \newrightpage\thispagestyle{empty}\fullPageImage{#2}
 }
+
+
+% ======= Credits page =======
 
 % \creditsPage{backgroundImage}{copyrightYear}{formattedIsbn}{versionTag}
 \newcommand{\creditsPage}[4]{
@@ -269,6 +324,7 @@
   \endgroup
 }
 
+% ======= Document =======
 
 \begin{document}
 
