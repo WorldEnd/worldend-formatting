@@ -115,11 +115,6 @@
  { \par\noindent\ignorespacesafterend }
 
 
-% \ifEmptyElse{condition}{value if empty}{value if nonempty}
-\newcommand{\ifEmptyElse}[3]{
-  \def\tempparam{#1}\ifx\tempparam\empty #2 \else #3 \fi
-}
-
 \newcommand{\atTopOfPage}[1]{
   \begin{tikzpicture}[remember picture,overlay,every node/.style={inner sep=0,outer sep=0}]
     \node[anchor=north,yshift=0pt,xshift=0pt] at (current page.north) {%
@@ -210,8 +205,8 @@
   \pagestyle{fancy}
   \thispagestyle{empty}
 
-  %The blank space when starting a new chapter is 9 lines. The part title (if it exists) is around the middle, a bit below line 5
-  \vphantom{1}\par\vphantom{2}\par\vphantom{3}\par\vphantom{4}\ifEmptyElse{#1}{}{\addPdfBookmarkForPart{#1}}\par
+  % The blank space when starting a new chapter is 9 lines. The part title (if it exists) is around the middle, a bit below line 5
+  \vphantom{1}\par\vphantom{2}\par\vphantom{3}\par\vphantom{4}\IfStrEq{#1}{}{}{\addPdfBookmarkForPart{#1}}\par
   \noindent\vphantom{5}\begin{picture}(0, 0)\put(0, -0.3\baselineskip){\sectionTitleStyle #1}\end{picture}\par
   \vphantom{6}\par\vphantom{7}\par\vphantom{8}\par\vphantom{9}
   \write\pageNumbersFile{ChapterPageNumber: \thepage}
