@@ -316,7 +316,7 @@ def convert_book(
     (work_dir / "content.tex").write_text(content_text)
 
     config_lines = [
-        R"\newcommand{\volumeNumberHeaderText}{Vol." + str(book_config.volume) + "}",
+        Rf"\newcommand{{\volumeNumber}}{in_curlies(book_config.volume)}",
         Rf"\newcommand{{\bleedSize}}{in_curlies((str(bleed_size) + 'in'))}",
         Rf"\newcommand{{\innerBleedSize}}{in_curlies((str(0.0 if no_inner_bleed else bleed_size) + 'in'))}",
         Rf"\newcommand{{\gutterSize}}{in_curlies(str(gutter_size) + 'in')}",
