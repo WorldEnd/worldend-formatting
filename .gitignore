@@ -7,6 +7,7 @@ WorkDir/
 
 *.pyc
 
+*.out
 *.aux
 *.pdf
 *.synctex.*
