@@ -8,6 +8,7 @@ WorkDir/
 *.pyc
 
 *.aux
+*.out
 *.pdf
 *.synctex.*
 *.page-numbers.txt
