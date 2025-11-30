@@ -9,7 +9,6 @@ WorkDir/
 
 *.out
 *.aux
-*.out
 *.pdf
 *.synctex.*
 *.page-numbers.txt
