@@ -392,9 +392,9 @@ def convert_book(
                 image_info.padding_lrtb(bleed_size),
             )
 
-        logger.info("==Starting xelatex (second pass)==")
-        env["TEXINPUTS"] = tex_inputs
-        subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
+    logger.info("==Starting xelatex (second pass)==")
+    env["TEXINPUTS"] = tex_inputs
+    subprocess.run(args=args, env=env, cwd=str(main_tex_file.parent))
 
     logger.info("==Finished xelatex==")
     intermediate_output_file = intermediate_output_directory / (output_stem + ".pdf")
