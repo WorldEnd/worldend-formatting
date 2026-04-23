@@ -115,26 +115,23 @@ def apply_case_pattern(source: str, replacement: str) -> str:
 
 
 def is_sentence_start(text: str, start: int) -> bool:
-    prefix = text[:start]
-
-    if not prefix.strip():
+    if start == 0:
         return True
 
-    stripped = prefix.rstrip()
-    if not stripped:
+    i = start - 1
+    while i >= 0 and text[i] in (" ", "\t"):
+        i -= 1
+
+    if i < 0:
         return True
 
-    lookback = stripped[-200:]
-
-    if "\n\n" in lookback:
-        after_last_para = lookback.split("\n\n")[-1].strip()
-        if not after_last_para:
-            return True
-
-    if stripped.endswith("\n"):
+    if text[i] == "\n":
         return True
 
-    return bool(SENTENCE_END_RE.search(stripped))
+    lookback_start = max(0, i - 200)
+    lookback = text[lookback_start : i + 1].rstrip()
+
+    return bool(SENTENCE_END_RE.search(lookback))
 
 
 def make_replacement_function(rule: Rule, full_text: str):
