@@ -431,16 +431,25 @@ rules:
     replace: official language
     case_mode: sentence_aware
 
-  - find: Floating Island
-    replace: floating island
-    case_mode: sentence_aware
-
-  - find: Island
-    replace: island
-    case_mode: sentence_aware
+  - find: '\b[Ff]loating [Ii]sland (\d+)\b'
+    replace: 'Island No. \1'
+    regex: true
 
   - find: '\b(\d+)(st|nd|rd|th)( floating)? (i|I)sland\b'
-    replace: 'Island No. \1'
+    replace: 'Island No. \1'
+    regex: true
+
+  - find: "Floating Island"
+    replace: "floating island"
+    case_mode: sentence_aware
+
+  - find: '\bIsland\b(?! No\.)'
+    replace: "island"
+    case_mode: sentence_aware
+    regex: true
+
+  - find: '\b(\d+)(st|nd|rd|th)( floating)? (i|I)sland\b'
+    replace: 'Island No. \1'
     regex: true
 
   - find: " - "
