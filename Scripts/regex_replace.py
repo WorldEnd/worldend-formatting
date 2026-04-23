@@ -303,10 +303,11 @@ def main():
         )
 
         if args.in_place:
-            if args.backup:
-                backup_path = file_path.with_suffix(file_path.suffix + ".bak")
-                shutil.copy2(file_path, backup_path)
-            file_path.write_text(new_text, encoding="utf-8")
+            if new_text != original_text:
+                if args.backup:
+                    backup_path = file_path.with_suffix(file_path.suffix + ".bak")
+                    shutil.copy2(file_path, backup_path)
+                file_path.write_text(new_text, encoding="utf-8")
         else:
             write_output_file(file_path, input_path, output_path, new_text)
 
