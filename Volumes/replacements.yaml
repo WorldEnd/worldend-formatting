@@ -231,19 +231,12 @@ rules:
     replace: lycanthrope
     case_mode: sentence_aware
 
-  # - find: (F|f)air(y|(ie))
-  #   replace: faerie
-  #   case_mode: sentence_aware
-  #   manual: true
-  #   regex: true
-  #   notes: Except in phrases like "fairy tale"; should be manually checked.
-
-  - find: '\b[Ff]airies\b(?! tale\b)'
+  - find: '\b[Ff]airies\b(?! [Tt]ale\b)'
     replace: "faeries"
     case_mode: sentence_aware
     regex: true
 
-  - find: '\b[Ff]airy\b(?! tale\b)'
+  - find: '\b[Ff]airy\b(?! [Tt]ale\b)'
     replace: "faerie"
     case_mode: sentence_aware
     regex: true
