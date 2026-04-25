@@ -244,7 +244,7 @@ def write_manual_review(manual_hits, output_path: Path):
                 lines.append(f"- notes: {hit['notes']}")
             lines.append("")
 
-        lines.append(f"- line {hit['line']}, col {hit['column']}")
+        lines.append(f"- location: `{hit['file']}:{hit['line']}:{hit['column']}`")
         lines.append(f"  - matched: `{hit['match_text']}`")
         lines.append(f"  - context: `{hit['snippet']}`")
         lines.append("")
