@@ -7,7 +7,8 @@ from typing import List, Tuple
 
 import yaml
 
-SENTENCE_END_RE = re.compile(r'[.!?…]["\')\]]*\s*$')
+SEP = r'(?:[\s"\'“”‘’)\]]|<[^<>]+>)*'
+BOUNDARY_RE = re.compile(r"(?:[.!?…]" + SEP + r"|\n\s*\n" + SEP + r")$")
 
 
 @dataclass
@@ -118,20 +119,8 @@ def is_sentence_start(text: str, start: int) -> bool:
     if start == 0:
         return True
 
-    i = start - 1
-    while i >= 0 and text[i] in (" ", "\t"):
-        i -= 1
-
-    if i < 0:
-        return True
-
-    if text[i] == "\n":
-        return True
-
-    lookback_start = max(0, i - 200)
-    lookback = text[lookback_start : i + 1].rstrip()
-
-    return bool(SENTENCE_END_RE.search(lookback))
+    lookback = text[max(0, start - 2000) : start]
+    return bool(BOUNDARY_RE.search(lookback))
 
 
 def make_replacement_function(rule: Rule, full_text: str):
