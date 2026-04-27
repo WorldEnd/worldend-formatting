@@ -258,17 +258,21 @@ def main():
     )
     parser.add_argument("input", help="Input .md file or directory of .md files")
     parser.add_argument("rules", help="YAML rules file")
-    parser.add_argument("-o", "--output", help="Output file or directory")
-    parser.add_argument("--in-place", action="store_true", help="Overwrite input files")
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("-o", "--output", help="Output file or directory")
+    mode.add_argument(
+        "-i", "--in-place", action="store_true", help="Overwrite input files"
+    )
+
     parser.add_argument(
         "--manual-review",
         default="manual_review.md",
-        help="Path to markdown manual-review report",
+        help="Path to manual review report",
     )
     parser.add_argument(
         "--backup",
         action="store_true",
-        help="Create .bak backups when using --in-place",
+        help="Create backups when using `--in-place`",
     )
 
     args = parser.parse_args()
@@ -277,11 +281,8 @@ def main():
     rules_path = Path(args.rules)
     manual_review_path = Path(args.manual_review)
 
-    if not args.in_place and not args.output:
-        raise SystemExit("You must specify either --in-place or --output")
-
-    if args.in_place and args.output:
-        raise SystemExit("Use either --in-place or --output, not both")
+    if args.backup and not args.in_place:
+        parser.error("--backup can only be used with --in-place")
 
     rules = load_rules(rules_path)
     files = collect_md_files(input_path)
