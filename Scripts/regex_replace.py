@@ -256,8 +256,17 @@ def main():
     parser = argparse.ArgumentParser(
         description="Regex/plain-text replacement on Markdown files using YAML rules."
     )
+    default_rules_path = (
+        Path(__file__).resolve().parent.parent / "Volumes" / "replacements.yaml"
+    )
+
     parser.add_argument("input", help="Input .md file or directory of .md files")
-    parser.add_argument("rules", help="YAML rules file")
+    parser.add_argument(
+        "--rules",
+        default=default_rules_path,
+        help=f"YAML rules file (default: Volumes/replacements.yaml)",
+    )
+
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("-o", "--output", help="Output file or directory")
     mode.add_argument(
