@@ -53,8 +53,9 @@ rules:
   - find: Lantolq
     replace: Rhantolk
 
-  - find: Lan
+  - find: Lan\b
     replace: Rhan
+    regex: true
 
   - find: Noft Kei Desperatio
     replace: Nopht Keh Desperatio
@@ -62,8 +63,9 @@ rules:
   - find: Noft
     replace: Nopht
 
-  - find: Shiba
+  - find: Shiba\b
     replace: Siba
+    regex: true
     notes: Of "Tiat Siba Ignareo"
 
   - find: Lakish
@@ -82,8 +84,9 @@ rules:
   - find: Naigrat
     replace: Nygglatho
 
-  - find: Nai
+  - find: Nai\b
     replace: Ny
+    regex: true
 
   - find: Leila
     replace: Lillia
@@ -91,8 +94,9 @@ rules:
   - find: Asprey
     replace: Asplay
 
-  - find: Aly
+  - find: Aly\b
     replace: Allie
+    regex: true
     notes: It's very important that this one is case-sensitive, since "aly" can appear in the middle of a lot of words.
 
   - find: Lucie
