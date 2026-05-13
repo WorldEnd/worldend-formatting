@@ -1,0 +1,482 @@
+# ==============================
+#   WorldEnd Replacement Sheet
+# ==============================
+
+# Each rule supports the following:
+#   `find`        Text or regex pattern to match.
+#   `replace`     Replacement text.
+#   `regex`       True if "find" is a regex. Otherwise omitted/false for literal text.
+#   `case_mode`   One of the following:
+#                   `literal`
+#                     - Use replacement exactly as written (default).
+#                   `preserve_case`
+#                     - Copy the matched text's casing when sensible.
+#                     - Examples:
+#                         fairy --> faerie
+#                         FAIRY --> FAERIE
+#                         Fairy --> Faerie
+#                   `sentence_aware`
+#                     - Capitalize only if the match starts a sentence.
+#                     - Examples:
+#                         Beastman --> semifer
+#                         "Beastman ran" at sentence start -> "Semifer ran"
+#   `manual`      If true, still apply replacement but also log the match for review.
+#   `flags`       Optional regex flags.
+#                   Supported values:
+#                     - `ignorecase` / `i`
+#                     - `multiline`  / `m`
+#                     - `dotall`     / `s`
+#                   Examples:
+#                     flags: ignorecase
+#                     flags: [ignorecase, multiline]
+#   `notes`       Any other comments.
+#
+# Notes:
+# - `sentence_aware` should only be used when the replacement should normally be lowercase.
+# - Do not use `sentence_aware` when the replacement itself is intentionally capitalized.
+#
+# Regex notes:
+# - Backreferences like `\1` are supported in replace.
+# - Rule order matters. Put more specific/longer matches before shorter ones.
+
+rules:
+  # CHARACTER NAMES
+  - find: Kutori
+    replace: Chtholly
+
+  - find: Aiseia
+    replace: Ithea
+
+  - find: Lantolq Itsuri Historia
+    replace: Rhantolk Ytri Historia
+
+  - find: Lantolq
+    replace: Rhantolk
+
+  - find: Lan\b
+    replace: Rhan
+    regex: true
+
+  - find: Noft Kei Desperatio
+    replace: Nopht Keh Desperatio
+
+  - find: Noft
+    replace: Nopht
+
+  - find: Shiba\b
+    replace: Siba
+    regex: true
+    notes: Of "Tiat Siba Ignareo"
+
+  - find: Lakish
+    replace: Lakhesh
+
+  - find: Panival
+    replace: Pannibal
+
+  - find: Riel
+    replace: Ryehl
+
+  - find: Grick
+    replace: Glick
+    notes: One of the two official transliterations I don't like.
+
+  - find: Naigrat
+    replace: Nygglatho
+
+  - find: Nai\b
+    replace: Ny
+    regex: true
+
+  - find: Leila
+    replace: Lillia
+
+  - find: Asprey
+    replace: Asplay
+
+  - find: Aly\b
+    replace: Allie
+    regex: true
+    notes: It's very important that this one is case-sensitive, since "aly" can appear in the middle of a lot of words.
+
+  - find: Lucie
+    replace: Luzie
+
+  - find: Kumesh
+    replace: Kmetsch
+
+  - find: Kanna
+    replace: Kana
+
+  - find: Harksten
+    replace: Hrqstn
+    notes: Elq's last name
+
+  - find: Astartus
+    replace: Astartos
+    notes: Nygglatho's father, also her last name in SukaMoka v4.
+
+  - find: Valgalis
+    replace: Valgulious
+    notes: Dug Weapons
+
+  - find: Seniolis
+    replace: Seniorious
+    notes: Was misspelled as Seniourious until June 30th 2023. Should be fixed now.
+
+  - find: Pachem
+    replace: Parchem
+
+  - find: Mulusmaurea
+    replace: Mulsum Aurea
+
+  # LOCATIONS/ORGANIZATIONS
+  - find: Regul Aire
+    replace: Regule Aire
+
+  - find: Elpis National Defense Force
+    replace: Elpis Air Defense Force
+
+  - find: Elpis(( Mercantile)|( Trading))? Federation
+    replace: Elpis Collective
+    regex: true
+
+  - find: Collinadiluche
+    replace: Collina di Luce
+
+  - find: Orlandri( General)? Trading Company
+    replace: Orlandry Merchants Alliance
+    regex: true
+
+  - find: Orlandri
+    replace: Orlandry
+
+  - find: Port District
+    replace: port district
+
+  - find: Factory District
+    replace: factory district
+
+  - find: Winged Guard Military
+    replace: Winged Guard
+
+  - find: Guardian Wings Military
+    replace: Winged Guard
+
+  - find: Adventurers’ Guild
+    replace: Adventurers Guild
+
+  - find: Church of Holy Light
+    replace: Church of Exalted Light
+
+  - find: Fistilas
+    replace: Fistirus
+
+  - find: '(?<!Imperial )Capital\b'
+    replace: "capital"
+    regex: true
+    case_mode: sentence_aware
+
+  - find: ((Noble)|(Royal)) Wing(s?) Empire
+    replace: Winged Empire
+    regex: true
+
+  - find: Garmond
+    replace: Garmando
+
+  - find: Flowing Sands Confederation
+    replace: Sands Federation
+
+  # SPECIES
+  - find: Teimerre
+    replace: Timere
+
+  - find: Shiantor
+    replace: Chanteur
+
+  - find: Ayrantro(b|p)os
+    replace: ailuranthrope
+    case_mode: sentence_aware
+    regex: true
+
+  - find: (B|b)eastman
+    replace: semifer
+    case_mode: sentence_aware
+    regex: true
+
+  - find: (B|b)eastmen
+    replace: semifer
+    case_mode: sentence_aware
+    regex: true
+
+  - find: (B|b)eastfolk
+    replace: semifer
+    case_mode: sentence_aware
+    regex: true
+
+  - find: (B|b)eastkind
+    replace: semifer
+    case_mode: sentence_aware
+    regex: true
+
+  - find: Borgle
+    replace: boggard
+    case_mode: sentence_aware
+
+  - find: Markless
+    replace: featureless
+    case_mode: sentence_aware
+
+  - find: markless
+    replace: featureless
+    case_mode: sentence_aware
+
+  - find: Lycanthropos
+    replace: lycanthrope
+    case_mode: sentence_aware
+
+  - find: '\b[Ff]airies\b(?! [Tt]ale\b)'
+    replace: "faeries"
+    case_mode: sentence_aware
+    regex: true
+
+  - find: '\b[Ff]airy\b(?! [Tt]ale\b)'
+    replace: "faerie"
+    case_mode: sentence_aware
+    regex: true
+
+  - find: Emnetwyte(s?)
+    replace: emnetwiht
+    case_mode: sentence_aware
+    regex: true
+
+  - find: Alle\b
+    replace: alle
+    case_mode: sentence_aware
+    regex: true
+
+  - find: Armado
+    replace: armado
+    case_mode: sentence_aware
+
+  - find: Ballman
+    replace: ballman
+    case_mode: sentence_aware
+
+  - find: Ballmen
+    replace: ballmen
+    case_mode: sentence_aware
+
+  - find: Bennu
+    replace: bennu
+    case_mode: sentence_aware
+
+  - find: Dragon
+    replace: dragon
+    case_mode: sentence_aware
+
+  - find: Falcon
+    replace: falconfolk
+    case_mode: sentence_aware
+
+  - find: Golem
+    replace: golem
+    case_mode: sentence_aware
+
+  - find: Imp\b
+    replace: imp
+    regex: true
+    case_mode: sentence_aware
+
+  - find: Imps\b
+    replace: imps
+    regex: true
+    case_mode: sentence_aware
+
+  - find: Leprechaun
+    replace: leprechaun
+    case_mode: sentence_aware
+
+  - find: Spectrals
+    replace: spectrals
+    case_mode: sentence_aware
+
+  - find: Troll
+    replace: troll
+    case_mode: sentence_aware
+
+  - find: Frogger
+    replace: frogger
+    case_mode: sentence_aware
+
+  - find: Scarsalantropos
+    replace: scarsalanthrope
+    case_mode: sentence_aware
+
+  - find: Findantropos
+    replace: findanthrope
+    case_mode: sentence_aware
+    notes: Refers to snake people. Official term will be revealed in SukaMoka Vol 1
+
+  - find: Reptrace
+    replace: lizardfolk
+    case_mode: sentence_aware
+
+  - find: Orc
+    replace: orc
+    case_mode: sentence_aware
+
+  - find: Ogre
+    replace: ogre
+    case_mode: sentence_aware
+
+  - find: Giant
+    replace: giant
+    case_mode: sentence_aware
+
+  - find: Gremian
+    replace: gremian
+    case_mode: sentence_aware
+
+  - find: Stalla
+    replace: stalla
+    case_mode: sentence_aware
+
+  - find: Alogantropos
+    replace: aloganthrope
+    case_mode: sentence_aware
+    notes: I honestly have no idea what this is
+
+  - find: Elf
+    replace: elf
+    case_mode: sentence_aware
+
+  - find: Elves
+    replace: elves
+    case_mode: sentence_aware
+
+  - find: Vampiric
+    replace: vampiric
+    case_mode: sentence_aware
+
+  - find: Legiteimitat
+    replace: Legitimitate
+
+  - find: Tourterelle
+    replace: tourterelle
+    case_mode: sentence_aware
+
+  - find: Haresantrobos
+    replace: rabbitfolk
+    case_mode: sentence_aware
+
+  - find: Kikuroppes
+    replace: cyclopes
+    case_mode: sentence_aware
+
+  - find: Kikuroppe
+    replace: cyclops
+    case_mode: sentence_aware
+    notes: Plural is "cyclopes"
+
+  - find: Titanic
+    replace: titanic
+    case_mode: sentence_aware
+
+  - find: Myrmex
+    replace: myrmex
+    case_mode: sentence_aware
+
+  - find: Cygne
+    replace: cygne
+    case_mode: sentence_aware
+
+  # OTHER
+  - find: Second Enchanted Weapons Technician
+    replace: Second Enchantments Officer
+
+  - find: spell vision
+    replace: Sight
+
+  - find: Venom
+    replace: venenum
+    case_mode: sentence_aware
+
+  - find: '\bKaliyons?\b'
+    replace: "Carillon"
+    regex: true
+
+  - find: Dug Weapon
+    replace: dug weapon
+    case_mode: sentence_aware
+
+  - find: Regal Brave
+    replace: Legal Brave
+    notes: One of the two official transliterations I don't like
+
+  - find: adventurer
+    replace: Adventurer
+    notes: Brave should also be capitalized, but not when used as an adjective.
+
+  - find: \.\.\.[ ]?
+    replace: …
+    manual: true
+    regex: true
+    notes: Three periods (optionally followed by a space) --> one ellipsis character (needs manual checking).
+
+  - find: common language
+    replace: official language
+    case_mode: sentence_aware
+
+  - find: '\b[Ff]loating [Ii]sland (\d+)\b'
+    replace: 'Island No. \1'
+    regex: true
+
+  - find: '\b(\d+)(st|nd|rd|th)( floating)? (i|I)sland\b'
+    replace: 'Island No. \1'
+    regex: true
+
+  - find: "Floating Island"
+    replace: "floating island"
+    case_mode: sentence_aware
+
+  - find: '\bIsland\b(?! No\.)'
+    replace: "island"
+    case_mode: sentence_aware
+    regex: true
+
+  - find: '\b(\d+)(st|nd|rd|th)( floating)? (i|I)sland\b'
+    replace: 'Island No. \1'
+    regex: true
+
+  - find: " - "
+    replace: —
+    notes: space, hyphen, space -> em dash
+
+  - find: " – "
+    replace: —
+    notes: space, en dash, space -> em dash
+
+  - find: "–"
+    replace: —
+    manual: true # Unlikely use of real en dash
+    notes: en dash -> em dash
+
+  - find: Talisman
+    replace: talisman
+    case_mode: sentence_aware
+
+  - find: '\b[gG]ate\b'
+    replace: "gate"
+    case_mode: sentence_aware
+    regex: true
+    manual: true
+    notes: Yen Press exclusively uses "the gates" or "the gates to the faerie homeland", never "the fairy gates" or similar. Requires manual checking.
+
+  - find: Imperial sage
+    replace: Imperial Sage
+
+  - find: Monstrous
+    replace: monsters
+    case_mode: sentence_aware
+    manual: true

@@ -9,3 +9,4 @@ pylatexenc
 regex
 pint
 black
+pyyaml
