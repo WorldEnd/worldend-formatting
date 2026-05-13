@@ -205,13 +205,10 @@ def write_output_file(
 
 
 def write_manual_review(manual_hits, output_path: Path):
-    lines = ["# Manual Review Report", ""]
-
     if not manual_hits:
-        lines.append("No manual-review matches found.")
-        lines.append("")
-        output_path.write_text("\n".join(lines), encoding="utf-8")
         return
+
+    lines = ["# Manual Review Report", ""]
 
     current_file = None
     current_rule = None
@@ -313,7 +310,8 @@ def main():
     write_manual_review(all_manual_hits, manual_review_path)
 
     print(f"Processed {len(files)} file(s).")
-    print(f"Manual review file: {manual_review_path}")
+    if all_manual_hits:
+        print(f"Manual review file: {manual_review_path}")
     print(f"Manual-review hits: {len(all_manual_hits)}")
 
 
