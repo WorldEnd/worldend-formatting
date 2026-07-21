@@ -235,15 +235,23 @@ rules:
     replace: lycanthrope
     case_mode: sentence_aware
 
-  - find: '\b[Ff]airies\b(?! [Tt]ale\b)'
+  - find: '\b[Ff]airies\b(?![ -][Tt]ales?\b)'
     replace: "faeries"
     case_mode: sentence_aware
     regex: true
+    notes: >-
+      "faerie(s)" is the series-specific term; "fairy/fairies"
+      used in a generic or folkloric sense (fairy tales, legends, similes like
+      "quick as a fairy") is ordinary English and should remain as-is.
 
-  - find: '\b[Ff]airy\b(?! [Tt]ale\b)'
+  - find: '\b[Ff]airy\b(?![ -][Tt]ales?\b)'
     replace: "faerie"
     case_mode: sentence_aware
     regex: true
+    notes: >-
+      "faerie(s)" is the series-specific term; "fairy/fairies"
+      used in a generic or folkloric sense (fairy tales, legends, similes like
+      "quick as a fairy") is ordinary English and should remain as-is.
 
   - find: Emnetwyte(s?)
     replace: emnetwiht
@@ -275,9 +283,10 @@ rules:
     replace: dragon
     case_mode: sentence_aware
 
-  - find: Falcon
+  - find: Falcon(?!folk)
     replace: falconfolk
     case_mode: sentence_aware
+    regex: true
 
   - find: Golem
     replace: golem
@@ -443,10 +452,6 @@ rules:
   - find: '\bIsland\b(?! No\.)'
     replace: "island"
     case_mode: sentence_aware
-    regex: true
-
-  - find: '\b(\d+)(st|nd|rd|th)( floating)? (i|I)sland\b'
-    replace: 'Island No. \1'
     regex: true
 
   - find: " - "
