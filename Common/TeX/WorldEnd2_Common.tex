@@ -99,6 +99,7 @@
 \usepackage{tikz}
 \usepackage{soul}
 \usepackage{xstring}
+\usepackage{afterpage}
 
 \newcommand{\textof}[2][sb]{{\fontseries{#1}\selectfont #2}}
 
@@ -262,6 +263,10 @@
   {#1}
   \newrightpage\thispagestyle{empty}\fullPageImage{#2}
 }
+
+
+% ======= In-text illustrations =======
+\newcommand{\insertInTextImage}[1]{\afterpage{\insertSingleImage{#1}\newpage}}
 
 
 % ======= Credits page =======

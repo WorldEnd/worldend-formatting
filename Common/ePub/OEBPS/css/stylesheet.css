@@ -537,7 +537,12 @@ text-align: left;
 
 span.small-caps
 {
-font-size: 0.7em;
+font-variant: small-caps;
+}
+
+p.page-break
+{
+page-break-before: always;
 }
 
 span.dropcap
