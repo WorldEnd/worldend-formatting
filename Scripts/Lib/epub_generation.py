@@ -131,7 +131,7 @@ class EPUBGenerator:
             beginning = self.replace_text(
                 '<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="fr" lang="fr">\n'
                 "<head>\n"
-                "<title>WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</title>\n"
+                "<title>WorldEnd: What Do You Do at the End of the World? Are You Busy? Will You Save Us?, Vol. {BOOK_VOLUME}</title>\n"
                 '<link rel="stylesheet" href="css/stylesheet.css" type="text/css"/>\n'
                 '<meta http-equiv="default-style" content="text/html; charset=utf-8"/>\n'
                 "</head>\n"
@@ -211,7 +211,7 @@ class EPUBGenerator:
             "<?xml version='1.0' encoding='utf-8'?>\n"
             '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="fr" lang="fr">\n'
             "<head>\n"
-            "<title>WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</title>\n"
+            "<title>WorldEnd: What Do You Do at the End of the World? Are You Busy? Will You Save Us?, Vol. {BOOK_VOLUME}</title>\n"
             '<link rel="stylesheet" href="css/stylesheet.css" type="text/css"/>\n'
             "</head>\n"
             "<body>\n"
@@ -230,7 +230,7 @@ class EPUBGenerator:
             "<?xml version='1.0' encoding='utf-8'?>\n"
             '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="fr" lang="fr">\n'
             "<head>\n"
-            "<title>WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</title>\n"
+            "<title>WorldEnd: What Do You Do at the End of the World? Are You Busy? Will You Save Us?, Vol. {BOOK_VOLUME}</title>\n"
             '<link rel="stylesheet" href="css/stylesheet.css" type="text/css"/>\n'
             "</head>\n"
             "<body>\n"
@@ -269,7 +269,7 @@ class EPUBGenerator:
             '<?xml version="1.0" encoding="UTF-8"?><html xmlns:epub="http://www.idpf.org/2007/ops" xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">\n'
             "<head>\n"
             '<meta http-equiv="default-style" content="text/html; charset=utf-8"/>\n'
-            "<title>WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</title>\n"
+            "<title>WorldEnd: What Do You Do at the End of the World? Are You Busy? Will You Save Us?, Vol. {BOOK_VOLUME}</title>\n"
             '<link rel="stylesheet" href="css/stylesheet.css" type="text/css"/>\n'
             "</head>\n"
             "<body>\n"
@@ -289,7 +289,7 @@ class EPUBGenerator:
             '<?xml version="1.0" encoding="UTF-8"?><html xmlns:epub="http://www.idpf.org/2007/ops" xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">\n'
             "<head>\n"
             '<meta http-equiv="default-style" content="text/html; charset=utf-8"/>\n'
-            "<title>WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</title>\n"
+            "<title>WorldEnd: What Do You Do at the End of the World? Are You Busy? Will You Save Us?, Vol. {BOOK_VOLUME}</title>\n"
             '<link rel="stylesheet" href="css/stylesheet.css" type="text/css"/>\n'
             "</head>\n"
             "<body>\n"
@@ -307,7 +307,7 @@ class EPUBGenerator:
         text = self.replace_text(
             '<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">\n'
             "<head>\n"
-            "<title>WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</title>\n"
+            "<title>WorldEnd: What Do You Do at the End of the World? Are You Busy? Will You Save Us?, Vol. {BOOK_VOLUME}</title>\n"
             '<meta content="text/html; charset=utf-8" http-equiv="default-style"/>\n'
             '<link rel="stylesheet" href="css/stylesheet.css" type="text/css"/>\n'
             "</head>\n"
@@ -341,7 +341,7 @@ class EPUBGenerator:
             '    <meta name="dtb:maxPageNumber" content="0"/>\n'
             "  </head>\n"
             "  <docTitle>\n"
-            "    <text>WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</text>\n"
+            "    <text>WorldEnd: What Do You Do at the End of the World? Are You Busy? Will You Save Us?, Vol. {BOOK_VOLUME}</text>\n"
             "  </docTitle>\n"
             "  <navMap>\n"
             '    <navPoint id="num_1" playOrder="1">\n'
@@ -392,7 +392,7 @@ class EPUBGenerator:
             "<?xml version='1.0' encoding='utf-8'?>\n"
             '<html xmlns:epub="http://www.idpf.org/2007/ops" xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">\n'
             "<head>\n"
-            "<title>WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</title>\n"
+            "<title>WorldEnd: What Do You Do at the End of the World? Are You Busy? Will You Save Us?, Vol. {BOOK_VOLUME}</title>\n"
             '<link rel="stylesheet" type="text/css" href="css/stylesheet.css"/>\n'
             "</head>\n"
             "<body>\n"
@@ -407,7 +407,7 @@ class EPUBGenerator:
         text = self.replace_text(
             '<package xmlns="http://www.idpf.org/2007/opf" version="3.0" xml:lang="en" unique-identifier="pub-id">\n'
             '  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">\n'
-            '    <dc:title id="id">WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</dc:title>\n'
+            '    <dc:title id="id">WorldEnd: What Do You Do at the End of the World? Are You Busy? Will You Save Us?, Vol. {BOOK_VOLUME}</dc:title>\n'
             '    <dc:creator id="id-1">Akira Kareno</dc:creator>\n'
             '    <dc:creator id="id-2">ue</dc:creator>\n'
             # "    <dc:rights>©2014 Akira Kareno, ue</dc:rights>\n"
@@ -416,7 +416,7 @@ class EPUBGenerator:
             "    <dc:language>en</dc:language>\n"
             "    <dc:publisher>Orlandri Translation Company</dc:publisher>\n"
             '    <meta refines="#id" property="title-type">main</meta>\n'
-            '    <meta refines="#id" property="file-as">WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. {BOOK_VOLUME}</meta>\n'
+            '    <meta refines="#id" property="file-as">WorldEnd: What Do You Do at the End of the World? Are You Busy? Will You Save Us?, Vol. {BOOK_VOLUME}</meta>\n'
             '    <meta property="dcterms:modified">{TIME}</meta>\n'
             '    <meta refines="#id-1" property="role" scheme="marc:relators">aut</meta>\n'
             '    <meta refines="#id-1" property="file-as">Kareno, Akira</meta>\n'
