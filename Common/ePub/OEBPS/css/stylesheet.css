@@ -1,5 +1,3 @@
-
-
 body
 {
 line-height: 1.2em;
@@ -55,6 +53,14 @@ width: auto !important;
 {
 text-align: center;
 text-indent: 0em;
+}
+
+
+.top
+{
+text-indent: 20pt;
+margin-top: 40%;
+margin-bottom: 40%;
 }
 
 
@@ -141,6 +147,17 @@ padding-left: 1em;
 margin-top: 0em;
 margin-bottom: 0em;
 }
+
+
+.copyright1 {
+line-height: 1.3em;
+text-indent: -1em;
+padding-left: 4.3em;
+margin-top: 0em;
+margin-bottom: 0em;
+}
+
+
 
 blockquote p {
 margin-left: 0em;
@@ -525,6 +542,14 @@ margin-bottom: 6pt;
 text-align: left;
 }
 
+.toc-front2
+{
+text-indent: 0em;
+margin-top: 16pt;
+margin-bottom: 6pt;
+text-align: left;
+}
+
 
 .toc-dedication
 {
@@ -540,10 +565,11 @@ span.small-caps
 font-variant: small-caps;
 }
 
-p.page-break
+span.sc_ca
 {
-page-break-before: always;
+font-size: 0.7em;
 }
+
 
 span.dropcap
 {
@@ -1252,7 +1278,7 @@ text-indent: 0em;
 }
 
 
-.h1_co
+.h1_CO
 {
 font-weight: bold;
 font-size: 0.9em;
@@ -1266,6 +1292,19 @@ line-height: 1.2em;
 }
 
 .h1_co1
+{
+font-size: 0.9em;
+margin-top: 1.5em;
+color: #373535;
+margin-bottom: 1.5em;
+text-align: left;
+text-indent: 0em;
+font-family: sans-serif;
+font-weight: bold;
+line-height: 1.2em;
+}
+
+.h1
 {
 font-size: 0.9em;
 margin-top: 1.5em;
@@ -1348,4 +1387,19 @@ text-align: left;
 {
 margin-top: 10%;
 text-indent: 0em;
+}
+
+.mi {
+vertical-align: middle;
+}
+
+
+.page-break
+{
+page-break-before: always;
+}
+
+span.TX_2pt
+{
+font-size:0.9em;
 }
