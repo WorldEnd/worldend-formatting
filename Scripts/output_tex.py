@@ -1,4 +1,5 @@
 import argparse
+import functools
 import itertools
 import logging
 import os
@@ -109,25 +110,39 @@ def env_path_prepend(s_old: str, *args) -> str:
     return os.pathsep.join(str(x) for x in l)
 
 
-def get_latex_converter() -> UnicodeToLatexEncoder:
-    if not hasattr(get_latex_converter, "converter"):
-        # Check whether this character is preceded/followed by a word character
-        # (\w), possibly with some HTML tags in between
-        after_wchar = r"(?<=\w(?:<[^<>]+>)*)"
-        before_wchar = r"(?=(?:<[^<>]+>)*\w)"
+in_text_marker_regex = regex.compile(r'<img class="illustration" id="([^"]*)"\s*/>')
 
-        # Command to run at the beginning of the span, and command to run
-        # at the end. Use \bgroup and \egroup instead of { and } if you need to
-        # enclose something between the start and end command
-        def span_replacement(start_command: str, end_command="") -> str:
-            return (
-                R"\\begin{SpanEnv}\\renewcommand{\\SpanEnvClose}{"
-                + end_command
-                + "}"
-                + start_command
-            )
 
-        regex_replacements = {
+@functools.cache
+def get_latex_converter(
+    in_text_paths: "tuple[tuple[str, str], ...]",
+) -> UnicodeToLatexEncoder:
+    # Check whether this character is preceded/followed by a word character
+    # (\w), possibly with some HTML tags in between
+    after_wchar = r"(?<=\w(?:<[^<>]+>)*)"
+    before_wchar = r"(?=(?:<[^<>]+>)*\w)"
+
+    # Command to run at the beginning of the span, and command to run
+    # at the end. Use \bgroup and \egroup instead of { and } if you need to
+    # enclose something between the start and end command
+    def span_replacement(start_command: str, end_command="") -> str:
+        return (
+            R"\\begin{SpanEnv}\\renewcommand{\\SpanEnvClose}{"
+            + end_command
+            + "}"
+            + start_command
+        )
+
+    regex_replacements = {}
+
+    for image_id, image_path in in_text_paths:
+        marker = f'<img class="illustration" id="{image_id}"/>'
+        regex_replacements[regex.escape(marker)] = (
+            R"\\insertInTextImage{" + image_path + "}"
+        )
+
+    regex_replacements.update(
+        {
             rf"{after_wchar}(?:(?:\.\.\.)|(?:…)){before_wchar}": r"{\\EllipsisSplittable}",
             r"(?:(?:\.\.\.)|(?:…))": r"{\\Ellipsis}",
             rf"</span>": r"\\end{SpanEnv}",
@@ -135,6 +150,9 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
                 r"\\newpage\\hspace{0pt}\\vfill ", r" \\vfill\\hspace{0pt}\\newpage"
             ),
             rf'<span class="page-break"[ ]?/>': r"\\newpage",
+            # SpanEnv is itself a group, so the \scshape declaration is scoped
+            # by it and closed automatically when </span> becomes \end{SpanEnv}
+            rf'<span class="small-caps">': span_replacement(r"\\scshape "),
             r"<i>": r"\\textit{",
             r"</i>": r"}",
             r"<em>": r"\\textit{",
@@ -149,20 +167,34 @@ def get_latex_converter() -> UnicodeToLatexEncoder:
             r"</strong>": r"}",
             r"<br(?:[ ]?/)?>": r"\\",
         }
+    )
 
-        conversion_rules = [
-            UnicodeToLatexConversionRule(
-                RULE_REGEX,
-                [(regex.compile(k), v) for k, v in regex_replacements.items()],
-                replacement_latex_protection="none",
-            ),
-            "defaults",
-        ]
-        get_latex_converter.converter = UnicodeToLatexEncoder(
-            conversion_rules=conversion_rules, replacement_latex_protection="braces-all"
-        )
+    conversion_rules = [
+        UnicodeToLatexConversionRule(
+            RULE_REGEX,
+            [(regex.compile(k), v) for k, v in regex_replacements.items()],
+            replacement_latex_protection="none",
+        ),
+        "defaults",
+    ]
+    return UnicodeToLatexEncoder(
+        conversion_rules=conversion_rules, replacement_latex_protection="braces-all"
+    )
 
-    return get_latex_converter.converter
+
+def validate_in_text_markers(
+    text: str, in_text_paths: "dict[str, str]", source_path: Path
+):
+    for match in in_text_marker_regex.finditer(text):
+        image_id = match.group(1)
+        if image_id not in in_text_paths:
+            known = ", ".join(in_text_paths) or "(none)"
+            logger.error(
+                f"Unknown in-text illustration id `{image_id}` in `{source_path}`. "
+                f"Add it under `in_text:` in the volume's Images/config.yaml. "
+                f"Known ids: {known}"
+            )
+            sys.exit(1)
 
 
 def format_isbn(isbn) -> str:
@@ -170,8 +202,9 @@ def format_isbn(isbn) -> str:
     return f"{isbn[:3]}-{isbn[3:4]}-{isbn[4:8]}-{isbn[8:12]}-{isbn[12]}"
 
 
-def format_text(text: str) -> str:
-    converted_text = get_latex_converter().unicode_to_latex(text)
+def format_text(text: str, in_text_paths: "dict[str, str]") -> str:
+    converter = get_latex_converter(tuple(in_text_paths.items()))
+    converted_text = converter.unicode_to_latex(text)
 
     def transform_paragraph(p: str) -> str:
         p = p.strip()
@@ -182,13 +215,17 @@ def format_text(text: str) -> str:
     split_text = regex.split(r"\r?\n\s*\n", converted_text)
     transformed_text = (transform_paragraph(p) for p in split_text)
     filtered_text = list(filter(lambda x: x and not x.isspace(), transformed_text))
+
+    def is_in_text_image(p: str) -> bool:
+        return p.startswith(R"\insertInTextImage{")
+
     for i in range(len(filtered_text)):
-        if (
-            filtered_text[i] == R"\icon"
-            and i + 1 < len(filtered_text)
-            and filtered_text[i + 1] != R"\icon"
-        ):
-            filtered_text[i + 1] = R"\noindent" + "\n" + filtered_text[i + 1]
+        if filtered_text[i] == R"\icon":
+            j = i + 1
+            while j < len(filtered_text) and is_in_text_image(filtered_text[j]):
+                j += 1
+            if j < len(filtered_text) and filtered_text[j] != R"\icon":
+                filtered_text[j] = R"\noindent" + "\n" + filtered_text[j]
 
     text = "\n\n".join(filtered_text)
 
@@ -205,24 +242,39 @@ def format_text(text: str) -> str:
     return text
 
 
-def convert_part_text(part: Part, work_dir: Path, content_lines: list[str]):
+def convert_part_text(
+    part: Part,
+    work_dir: Path,
+    content_lines: list[str],
+    in_text_paths: "dict[str, str]",
+):
     output_filename = work_dir / (part.base_filename() + ".tex")
     input_text = part.text_filepath().read_text()
 
-    output_text = format_text(input_text)
+    validate_in_text_markers(input_text, in_text_paths, part.text_filepath())
+    output_text = format_text(input_text, in_text_paths)
 
     output_filename.write_text(output_text)
 
     content_lines.append(Rf"\insertPartText{in_curlies(output_filename.name)}")
 
 
-def convert_part(part: Part, work_dir: Path, content_lines: list[str]):
+def convert_part(
+    part: Part,
+    work_dir: Path,
+    content_lines: list[str],
+    in_text_paths: "dict[str, str]",
+):
     content_lines.append(Rf"\beginPart{in_curlies(f'{part.number}. {part.title}')}")
-    convert_part_text(part, work_dir, content_lines)
+    convert_part_text(part, work_dir, content_lines, in_text_paths)
 
 
 def convert_chapter(
-    chapter: Chapter, work_dir: Path, content_lines: list[str], img_info: ImageInfo
+    chapter: Chapter,
+    work_dir: Path,
+    content_lines: list[str],
+    img_info: ImageInfo,
+    in_text_paths: "dict[str, str]",
 ):
     part1 = chapter.parts[0]
     part_title_string = ""
@@ -232,10 +284,10 @@ def convert_chapter(
     content_lines.append(
         Rf"\beginChapter{part_title_string}{in_curlies(chapter.title)}{in_curlies(chapter.subtitle)}{in_curlies(image_latex_path(img_info))}"
     )
-    convert_part_text(part1, work_dir, content_lines)
+    convert_part_text(part1, work_dir, content_lines, in_text_paths)
 
     for part in itertools.islice(chapter.parts, 1, None):
-        convert_part(part, work_dir, content_lines)
+        convert_part(part, work_dir, content_lines, in_text_paths)
 
 
 def image_latex_path(img_info: ImageInfo) -> str:
@@ -307,9 +359,14 @@ def convert_book(
         Rf"\insertTableOfContents{in_curlies(image_latex_path(image_config.toc))}"
     )
 
+    in_text_paths = {
+        image_id: image_latex_path(img_info)
+        for image_id, img_info in image_config.in_text_images.items()
+    }
+
     for chapter in book_config.chapters:
         img_info = image_config.chapter_images[chapter.number]
-        convert_chapter(chapter, work_dir, content_lines, img_info)
+        convert_chapter(chapter, work_dir, content_lines, img_info, in_text_paths)
 
     if image_config.back_cover is not None and not no_back_cover:
         content_lines.extend(

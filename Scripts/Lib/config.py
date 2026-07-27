@@ -191,6 +191,7 @@ class ImagesConfig(BaseImagesConfig):
     toc: "ImageInfo"
     insert_images: "list[ImageInfo]"
     chapter_images: "OrderedDict[int, ImageInfo]"
+    in_text_images: "OrderedDict[str, ImageInfo]"
 
     def __init__(self):
         super().__init__()
@@ -200,6 +201,7 @@ class ImagesConfig(BaseImagesConfig):
         self.toc = None
         self.insert_images = []
         self.chapter_images = OrderedDict()
+        self.in_text_images = OrderedDict()
         self.directory = None
 
     @override
@@ -217,6 +219,15 @@ class ImagesConfig(BaseImagesConfig):
                 image_node, "double"
             )
 
+        for image_id, image_node in node.get("in_text", {}).items():
+            if image_node.get("image_type", "single") != "single":
+                raise ValueError(
+                    f"In-text illustration `{image_id}` must be a single-page image"
+                )
+            self.in_text_images[str(image_id)] = self.image_from_yaml(
+                image_node, "single"
+            )
+
     def non_filler_insert_images(self) -> Iterator["ImageInfo"]:
         return filter(lambda x: not x.is_filler, self.insert_images)
 
@@ -225,6 +236,7 @@ class ImagesConfig(BaseImagesConfig):
         return itertools.chain(
             self.insert_images,
             self.chapter_images.values(),
+            self.in_text_images.values(),
             filter(
                 lambda x: x is not None,
                 [self.front_cover, self.back_cover, self.titlepage, self.toc],

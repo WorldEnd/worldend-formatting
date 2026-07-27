@@ -69,11 +69,16 @@ def grab_tag(string):
 TAG_MAPPING = {
     '<p class="h1_co">': "subpart",
     '<p class="h1_co1">': "subpart",
+    '<h1 class="h1_CO">': "subpart",
+    '<p class="h1">': "subpart",
+    "<p>": "body",
     '<p class="tx">': "body",
     '<p class="tx1">': "body",
     '<p class="tx10">': "sectionbreakbody",
     '<p class="cotx1a">': "body",
+    '<p class="top">': "body",
     '<p class="space-break">': "breakbody",
+    '<p class="page-break"/>': "pagebreak",
     '<div class="ext_ch">': "ornament1",
     '<div class="decoration-rw10">': "ornament2",
     '<div class="media-rw image-rw float-none-rw floatgalley-none-rw align-center-rw width-fixed-rw exclude-print-rw">': "ornament3",
@@ -81,13 +86,33 @@ TAG_MAPPING = {
     "</div>": "ornamentx",
 }
 
+IGNORED_TAG_PREFIXES = (
+    "<?xml",
+    "<html",
+    "<head",
+    "</head",
+    "<title",
+    "<link",
+    "<meta",
+    "<body",
+    "</body",
+    "</html",
+    "<section",
+    "</section",
+    '<div class="galley-rw"',
+    '<h1 class="chapter-title"',
+    '<h2 class="chapter-subtitle"',
+)
+
+CONTENTLESS_TYPES = ("ornament", "pagebreak")
+
 
 def parse_text(line):
     tag = grab_tag(line)
     if tag in TAG_MAPPING:
         return (
             TAG_MAPPING[tag],
-            "" if TAG_MAPPING[tag].startswith("ornament") else strip_tag(line),
+            ("" if TAG_MAPPING[tag].startswith(CONTENTLESS_TYPES) else strip_tag(line)),
         )
     else:
         raise ValueError("Unaccounted tag: " + str(tag))
@@ -104,6 +129,8 @@ def print_text(book):
         return "<br/>\n\n" + book[1]
     elif book[0] == "sectionbreakbody":
         return '<span class="v-centered-page">' + book[1] + "</span>"
+    elif book[0] == "pagebreak":
+        return '<span class="page-break"/>'
     elif book[0] == "subpart":
         SUBPART_NUMBER += 1
         return "# " + str(SUBPART_NUMBER)
@@ -114,7 +141,10 @@ def print_text(book):
 def parse_lines(lines):
     result = []
     for line in lines:
-        result.append(parse_text(line))
+        stripped = line.strip()
+        if not stripped or stripped.startswith(IGNORED_TAG_PREFIXES):
+            continue
+        result.append(parse_text(stripped))
     return result
 
 

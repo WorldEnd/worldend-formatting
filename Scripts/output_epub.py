@@ -180,6 +180,13 @@ def process_images(images_config: ImagesConfig, output_dir: Path, isbn: str):
         output_path = output_dir / f"Art_chapter{chapter_number:03}.jpg"
         resize_image(image_path, output_path, isinstance(img_info, SingleImage))
 
+    for in_text_number, img_info in enumerate(
+        images_config.in_text_images.values(), start=1
+    ):
+        image_path = img_info.absolute_image_path()
+        output_path = output_dir / f"Art_intext{in_text_number:03}.jpg"
+        resize_image(image_path, output_path, isinstance(img_info, SingleImage))
+
 
 def main():
     parser = argparse.ArgumentParser(

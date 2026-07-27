@@ -18,17 +18,20 @@ class EPUBState:
     previous_is_subpart: bool
     previous_is_first: bool
     previous_is_split: bool
+    previous_is_illustration: bool
 
     def __init__(self):
         self.previous_is_break = False
         self.previous_is_subpart = False
         self.previous_is_first = False
         self.previous_is_split = False
+        self.previous_is_illustration = False
 
     def set_three(self, old_break: bool, old_subpart: bool, old_split: bool):
         self.previous_is_break = old_break
         self.previous_is_subpart = old_subpart
         self.previous_is_split = old_split
+        self.previous_is_illustration = False
 
 
 class EPUBGenerator:
@@ -37,6 +40,7 @@ class EPUBGenerator:
     text_directory: Path
     chapters: "list[Chapter]"
     images_config: ImagesConfig
+    in_text_image_files: "dict[str, str]"
 
     @classmethod
     def from_book_config(cls, book_config: Book, images_config: ImagesConfig):
@@ -46,12 +50,35 @@ class EPUBGenerator:
         book.text_directory = book_config.text_directory()
         book.chapters = book_config.chapters
         book.images_config = images_config
+        book.in_text_image_files = {
+            image_id: f"Art_intext{number:03}.jpg"
+            for number, image_id in enumerate(images_config.in_text_images, start=1)
+        }
         return book
 
     def process_line(self, line: str, state: EPUBState) -> str:
         span = regex.match(r'^<span class="v-centered-page">(.+?)</span>$', line)
+        illustration = regex.match(
+            r'^<img class="illustration" id="([^"]+)"\s*/>$', line
+        )
 
-        if line == "* * *":
+        if illustration:
+            image_id = illustration.group(1)
+            if image_id not in self.in_text_image_files:
+                known = ", ".join(self.in_text_image_files) or "(none)"
+                raise ValueError(
+                    f"Unknown in-text illustration id `{image_id}`. "
+                    f"Add it under `in_text:` in the volume's Images/config.yaml. "
+                    f"Known ids: {known}"
+                )
+            state.set_three(False, False, False)
+            state.previous_is_illustration = True
+            return (
+                '<div class="image_full">'
+                f'<img alt="Book Title Page" src="images/{self.in_text_image_files[image_id]}"/>'
+                "</div>"
+            )
+        elif line == "* * *":
             state.set_three(False, True, False)
             return (
                 '<div class="ext_ch">\n'
@@ -65,6 +92,9 @@ class EPUBGenerator:
         elif line == "<br/>":
             state.set_three(True, False, False)
             return ""
+        elif regex.match(r'^<span class="page-break"\s*/>$', line):
+            state.set_three(False, False, False)
+            return '<p class="page-break"/>'
         elif span:
             state.set_three(False, False, True)
             return span.group(1)
@@ -124,6 +154,7 @@ class EPUBGenerator:
         state = EPUBState()
 
         current_section = []
+        keep_next_indent = False
 
         for part in self.chapters[chapter_number - 1].parts:
             if part.title is None:
@@ -154,13 +185,22 @@ class EPUBGenerator:
                             combined_content.append([f'<p class="tx10">{new_line}</p>'])
                         current_section = []
                         state.previous_is_split = False
+                        keep_next_indent = True
+                    elif state.previous_is_illustration:
+                        if current_section:
+                            combined_content.append(current_section)
+                        combined_content.append([new_line])
+                        current_section = []
+                        state.previous_is_illustration = False
+                        keep_next_indent = True
                     elif new_line:
-                        if not current_section:
+                        if not current_section and not keep_next_indent:
                             current_section.append(
                                 new_line.replace('<p class="tx">', '<p class="tx1">')
                             )
                         else:
                             current_section.append(new_line)
+                        keep_next_indent = False
 
         if current_section:
             combined_content.append(current_section)
@@ -426,6 +466,11 @@ class EPUBGenerator:
         text += self.replace_text(
             '    <item href="images/Art_chapter{CHAPTER_NUMBER:03}.jpg" id="aArt_chapter{CHAPTER_NUMBER:03}" media-type="image/jpeg"/>\n',
             self.chapters,
+        )
+
+        text += self.replace_text(
+            '    <item href="images/Art_intext{COUNTER:03}.jpg" id="aArt_intext{COUNTER:03}" media-type="image/jpeg"/>\n',
+            self.images_config.in_text_images.values(),
         )
 
         text += (
