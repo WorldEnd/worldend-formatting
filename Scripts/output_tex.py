@@ -58,8 +58,8 @@ logger.setLevel(logging.INFO)
 
 ureg = pint.UnitRegistry()
 
-xelatex_default_miktex = "xelatex -interaction={MODE} -enable-installer -output-directory={OUTPUT_DIRECTORY} -job-name={JOB_NAME} {TEX_FILE}"
-xelatex_default_texlive = "xelatex -interaction={MODE} -output-directory={OUTPUT_DIRECTORY} -jobname={JOB_NAME} {TEX_FILE}"
+xelatex_default_miktex = 'xelatex -interaction={MODE} -enable-installer -output-directory={OUTPUT_DIRECTORY} -job-name={JOB_NAME} -output-driver="xdvipdfmx -q -E -z {PDF_COMPRESSION}" {TEX_FILE}'
+xelatex_default_texlive = 'xelatex -interaction={MODE} -output-directory={OUTPUT_DIRECTORY} -jobname={JOB_NAME} -output-driver="xdvipdfmx -q -E -z {PDF_COMPRESSION}" {TEX_FILE}'
 
 
 def get_xelatex_command() -> str:
@@ -275,6 +275,7 @@ def convert_chapter(
     content_lines: list[str],
     img_info: ImageInfo,
     in_text_paths: "dict[str, str]",
+    work_image_suffix=".png",
 ):
     part1 = chapter.parts[0]
     part_title_string = ""
@@ -282,7 +283,7 @@ def convert_chapter(
         part_title_string = f"[{part1.number}. {part1.title}]"
 
     content_lines.append(
-        Rf"\beginChapter{part_title_string}{in_curlies(chapter.title)}{in_curlies(chapter.subtitle)}{in_curlies(image_latex_path(img_info))}"
+        Rf"\beginChapter{part_title_string}{in_curlies(chapter.title)}{in_curlies(chapter.subtitle)}{in_curlies(image_latex_path(img_info, work_image_suffix))}"
     )
     convert_part_text(part1, work_dir, content_lines, in_text_paths)
 
@@ -290,12 +291,12 @@ def convert_chapter(
         convert_part(part, work_dir, content_lines, in_text_paths)
 
 
-def image_latex_path(img_info: ImageInfo) -> str:
-    return img_info.relative_image_path().with_suffix(".png").as_posix()
+def image_latex_path(img_info: ImageInfo, work_image_suffix=".png") -> str:
+    return img_info.relative_image_path().with_suffix(work_image_suffix).as_posix()
 
 
-def image_latex_command(img_info: ImageInfo) -> str:
-    image_path_string = image_latex_path(img_info)
+def image_latex_command(img_info: ImageInfo, work_image_suffix=".png") -> str:
+    image_path_string = image_latex_path(img_info, work_image_suffix)
     if isinstance(img_info, DoubleImage):  # Double image and subclasses
         return Rf"\insertDoubleImage{in_curlies(image_path_string)}"
     elif isinstance(img_info, SingleImage):  # Single image and subclasses
@@ -318,8 +319,14 @@ def convert_book(
     no_front_cover=False,
     no_back_cover=False,
     gutter_size=0.0,
+    pdf_compression=6,
+    lossy_images=False,
 ):
     content_lines = []
+
+    # JPEG streams are copied into the PDF verbatim by xdvipdfmx, where PNGs are decoded and
+    # re-deflated. That makes the lossy path dramatically faster, so it is opt-in only.
+    work_image_suffix = ".jpg" if lossy_images else ".png"
 
     global_image_config = GlobalImagesConfig.from_file(
         common_dir() / "TeX" / "Images" / "config.yaml"
@@ -327,11 +334,15 @@ def convert_book(
 
     if image_config.front_cover is not None and not no_front_cover:
         content_lines.extend(
-            [image_latex_command(image_config.front_cover), R"\emptypage"]
+            [
+                image_latex_command(image_config.front_cover, work_image_suffix),
+                R"\emptypage",
+            ]
         )
 
     content_lines.extend(
-        image_latex_command(img_info) for img_info in image_config.insert_images
+        image_latex_command(img_info, work_image_suffix)
+        for img_info in image_config.insert_images
     )
 
     if image_config.titlepage is not None:
@@ -339,38 +350,50 @@ def convert_book(
             [
                 # Add a filler after the insert if the last image was on an odd page
                 R"\ifodd\value{realpage}",
-                image_latex_command(global_image_config.insert_filler),
+                image_latex_command(
+                    global_image_config.insert_filler, work_image_suffix
+                ),
                 R"\fi",
-                image_latex_command(image_config.titlepage),
+                image_latex_command(image_config.titlepage, work_image_suffix),
             ]
         )
 
-    credits_background_path = (
-        global_image_config.credits_background.relative_image_path().with_suffix(".png")
+    credits_background_path = image_latex_path(
+        global_image_config.credits_background, work_image_suffix
     )
     content_lines.extend(
         [
             Rf"\creditsPage{in_curlies(credits_background_path)}{in_curlies(book_config.publication_year)}{in_curlies(format_isbn(book_config.isbn))}{in_curlies(version_tag)}",
-            image_latex_command(global_image_config.after_credits),
+            image_latex_command(global_image_config.after_credits, work_image_suffix),
         ]
     )
 
     content_lines.append(
-        Rf"\insertTableOfContents{in_curlies(image_latex_path(image_config.toc))}"
+        Rf"\insertTableOfContents{in_curlies(image_latex_path(image_config.toc, work_image_suffix))}"
     )
 
     in_text_paths = {
-        image_id: image_latex_path(img_info)
+        image_id: image_latex_path(img_info, work_image_suffix)
         for image_id, img_info in image_config.in_text_images.items()
     }
 
     for chapter in book_config.chapters:
         img_info = image_config.chapter_images[chapter.number]
-        convert_chapter(chapter, work_dir, content_lines, img_info, in_text_paths)
+        convert_chapter(
+            chapter,
+            work_dir,
+            content_lines,
+            img_info,
+            in_text_paths,
+            work_image_suffix,
+        )
 
     if image_config.back_cover is not None and not no_back_cover:
         content_lines.extend(
-            [R"\newleftpage", image_latex_command(image_config.back_cover)]
+            [
+                R"\newleftpage",
+                image_latex_command(image_config.back_cover, work_image_suffix),
+            ]
         )
 
     content_text = "\n\n".join(content_lines)
@@ -407,6 +430,7 @@ def convert_book(
             OUTPUT_DIRECTORY=intermediate_output_directory,
             JOB_NAME=output_stem,
             TEX_FILE=main_tex_file,
+            PDF_COMPRESSION=pdf_compression,
         )
         for arg in shlex.split(xelatex_command_line)
     ]
@@ -421,8 +445,11 @@ def convert_book(
     # actually determine the page numbers.
     # The first pass doesn't take very long since we don't print the images.
 
-    if not skip_image_generation:
-        generate_images([image_config, global_image_config], work_dir, bleed_size)
+    image_configs = [image_config, global_image_config]
+    if skip_image_generation:
+        check_generated_images(image_configs, work_dir, work_image_suffix)
+    else:
+        generate_images(image_configs, work_dir, bleed_size, work_image_suffix)
 
     logger.info("==Starting xelatex (first pass)==")
     env["TEXINPUTS"] = tex_inputs_no_images
@@ -436,7 +463,7 @@ def convert_book(
                 work_dir / image_info.relative_image_path()
             ).with_name("temp-toc.png")
             output_path = (work_dir / image_info.relative_image_path()).with_suffix(
-                ".png"
+                work_image_suffix
             )
 
             page_numbers = get_page_numbers(page_numbers_file)
@@ -523,15 +550,56 @@ def draw_page_numbers(page_numbers: list[int], toc_path: Path, output_path: Path
     image.close()
 
 
-def generate_images(configs: "list[ImageInfo]", work_dir: Path, bleed_size: float):
+def work_image_path(
+    image_info: ImageInfo, work_dir: Path, work_image_suffix: str
+) -> Path:
+    return (work_dir / image_info.relative_image_path()).with_suffix(work_image_suffix)
+
+
+def generate_images(
+    configs: "list[ImageInfo]",
+    work_dir: Path,
+    bleed_size: float,
+    work_image_suffix=".png",
+):
     for image_info in itertools.chain.from_iterable(
         c.all_images_iter() for c in configs
     ):
         input_path = image_info.absolute_image_path()
-        output_path = (work_dir / image_info.relative_image_path()).with_suffix(".png")
+        output_path = work_image_path(image_info, work_dir, work_image_suffix)
         padding_lrtb = image_info.padding_lrtb(bleed_size)
 
         generate_single_image(input_path, output_path, padding_lrtb)
+
+
+def check_generated_images(
+    configs: "list[ImageInfo]", work_dir: Path, work_image_suffix: str
+):
+    missing = []
+    for image_info in itertools.chain.from_iterable(
+        c.all_images_iter() for c in configs
+    ):
+        path = work_image_path(image_info, work_dir, work_image_suffix)
+        if not path.exists():
+            missing.append(path)
+
+    if missing:
+        logger.error(
+            f"{len(missing)} generated `{work_image_suffix}` image(s) are missing from the "
+            f"work directory, starting with `{missing[0]}`. "
+            "Drop `-G`/`--skip-image-generation` to generate them. "
+            "(They are also regenerated when switching `-J`/`--lossy-images` on or off.)"
+        )
+        sys.exit(1)
+
+
+def is_grayscale(img) -> bool:
+    return (
+        img.ndim == 3
+        and img.shape[2] == 3
+        and not (img[..., 0] != img[..., 1]).any()
+        and not (img[..., 1] != img[..., 2]).any()
+    )
 
 
 def generate_single_image(
@@ -542,6 +610,10 @@ def generate_single_image(
     os.makedirs(output_path.parent, exist_ok=True)
     img = cv2.imread(str(input_path))
     logger.debug(np.shape(img))
+
+    # Make black and white artwork use one channel
+    if is_grayscale(img):
+        img = img[..., 0]
 
     l, r, t, b = padding_lrtb
     logger.debug((l, r, t, b))
@@ -556,7 +628,19 @@ def generate_single_image(
     img = cv2.inpaint(img, mask, 2, cv2.INPAINT_TELEA)
 
     logger.debug(output_path)
-    cv2.imwrite(str(output_path), img)
+    cv2.imwrite(str(output_path), img, jpeg_params(output_path))
+
+
+def jpeg_params(output_path: Path) -> "list[int]":
+    if output_path.suffix != ".jpg":
+        return []
+
+    return [
+        cv2.IMWRITE_JPEG_QUALITY,
+        95,
+        cv2.IMWRITE_JPEG_SAMPLING_FACTOR,
+        cv2.IMWRITE_JPEG_SAMPLING_FACTOR_444,
+    ]
 
 
 def crop_and_pad_mat(mat, pad_crop_values):
@@ -675,6 +759,21 @@ def main():
         action="store_true",
         help="Don't print the images to the PDF. Greatly speeds up execution.",
     )
+    parser.add_argument(
+        "-J",
+        "--lossy-images",
+        action="store_true",
+        help=f"Write the generated images as JPEG instead of PNG. The re-encode is lossy, so this works well for previewing, but is low quality for the final output.",
+    )
+    parser.add_argument(
+        "-z",
+        "--pdf-compression",
+        type=int,
+        choices=range(10),
+        default=6,
+        metavar="{0-9}",
+        help=f"Zlib compression level for the streams it embeds in the PDF. 9 gives the smallest file and is by far the slowest, while 0 disables compression entirely. Note that this flag is ignored if {colors.faint('--xelatex-command-line')} omits the driver.",
+    )
 
     args = parser.parse_args()
 
@@ -723,6 +822,8 @@ def main():
         args.no_front_cover,
         args.no_back_cover,
         length_to_inches(args.gutter_size),
+        args.pdf_compression,
+        args.lossy_images,
     )
 
 
