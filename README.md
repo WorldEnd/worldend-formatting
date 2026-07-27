@@ -38,6 +38,14 @@ For convenience, `-p` (`--print-mode`) is provided, which is short for `-b 0.125
 
 It is possible to tweak the print options alongside `--print-mode` by appending them after. For example, `-p -b 0in` enables print mode without bleed. If you put the print options before print mode, they will be overwritten, but other arguments can be put before without consequence.
 
+### Build speed
+There are several flags that will help speed up the generation process:
+
+- `-z` (`--pdf-compression`): Sets the zlib level (0–9) used for the streams embedded in the PDF. The default is 6. Use `-z 9` if you want the smallest possible file and don't mind waiting.
+- `-J` (`--lossy-images`): Writes the generated images as JPEG instead of PNG. The re-encode is lossy, so it works well for previewing, but is low quality for the final output.
+- `-G` (`--skip-image-generation`): Reuses the images already generated in the work directory instead of generating the bleed again. Note that switching `-J` on or off changes which files the work directory needs, so those runs cannot reuse each other's images.
+- `-I` (`--no-images`): Leaves the images out of the PDF but keep the pages it occupies so the text still paginates the same way.
+
 ## Exporting to EPUB
 To export to EPUB, run `Scripts/output_epub.py`:
 
