@@ -4,15 +4,7 @@ import pint
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from pathlib import Path
-from typing import Iterator, Literal
-
-try:
-    from typing import override
-except ImportError:
-
-    def override(f):
-        return f
-
+from typing import Iterator, Literal, override
 
 import numpy as np
 import oyaml as yaml
@@ -33,7 +25,7 @@ class Book(DebugPrintable):
     #     return itertools.chain(ch.parts for ch in self.chapters)
 
     @staticmethod
-    def from_file(config_file: str):
+    def from_file(config_file: str | Path) -> "Book | None":
         config_file = Path(config_file)
         if not config_file.exists():
             print(f"Error: Config file does not exist: '{config_file}'")
@@ -108,7 +100,7 @@ class Part(DebugPrintable):
         return self.grandparent.text_directory() / (self.base_filename() + ".md")
 
 
-def parse_book_config(directory: str):
+def parse_book_config(directory: str | Path) -> Book | None:
     directory = Path(directory)
     config_file = directory / "config.yaml"
 
@@ -124,27 +116,30 @@ def parse_book_config(directory: str):
 class BaseImagesConfig(DebugPrintable):
     directory: Path
 
-    def __init__(self):
-        self.directory = None
+    def __init__(self, directory: Path):
+        self.directory = directory
 
     @classmethod
-    def from_file(cls, config_file):
+    def from_file(cls, config_file: str | Path):
         config_file = Path(config_file)
         if not config_file.exists():
             print(f"Error: Config file does not exist: '{config_file}'")
             return None
 
         data = yaml.safe_load(config_file.read_text())
-        config = cls()
-        config.directory = config_file.parent.resolve()
+        config = cls(config_file.parent.resolve())
         config.parse_yaml(data)
         return config
 
-    def image_from_yaml(self, node: dict, default_image_type=None) -> "ImageInfo":
+    def image_from_yaml(
+        self, node: dict, default_image_type: "str | None" = None
+    ) -> "ImageInfo":
         image_class_map = {"single": SingleImage, "double": DoubleImage}
-        image_class = image_class_map[node.get("image_type", default_image_type)]
+        image_type = node.get("image_type", default_image_type)
+        if image_type not in image_class_map:
+            raise ValueError(f"Unknown image type: {image_type!r}")
 
-        return image_class(self, node)
+        return image_class_map[image_type](self, node)
 
     @abstractmethod
     def parse_yaml(self, node: dict):
@@ -156,12 +151,12 @@ class BaseImagesConfig(DebugPrintable):
 
 
 class GlobalImagesConfig(BaseImagesConfig):
-    insert_filler: "ImageInfo"
-    credits_background: "ImageInfo"
-    after_credits: "ImageInfo"
+    insert_filler: "ImageInfo | None"
+    credits_background: "ImageInfo | None"
+    after_credits: "ImageInfo | None"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, directory: Path):
+        super().__init__(directory)
         self.insert_filler = None
         self.credits_background = None
         self.after_credits = None
@@ -178,23 +173,30 @@ class GlobalImagesConfig(BaseImagesConfig):
 
     @override
     def all_images_iter(self) -> Iterator["ImageInfo"]:
-        return filter(
-            lambda x: x is not None,
-            [self.insert_filler, self.credits_background, self.after_credits],
+        return iter(
+            [
+                image
+                for image in (
+                    self.insert_filler,
+                    self.credits_background,
+                    self.after_credits,
+                )
+                if image is not None
+            ]
         )
 
 
 class ImagesConfig(BaseImagesConfig):
-    front_cover: "ImageInfo"
-    back_cover: "ImageInfo"
-    titlepage: "ImageInfo"
-    toc: "ImageInfo"
+    front_cover: "ImageInfo | None"
+    back_cover: "ImageInfo | None"
+    titlepage: "ImageInfo | None"
+    toc: "ImageInfo | None"
     insert_images: "list[ImageInfo]"
     chapter_images: "OrderedDict[int, ImageInfo]"
     in_text_images: "OrderedDict[str, ImageInfo]"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, directory: Path):
+        super().__init__(directory)
         self.front_cover = None
         self.back_cover = None
         self.titlepage = None
@@ -202,7 +204,6 @@ class ImagesConfig(BaseImagesConfig):
         self.insert_images = []
         self.chapter_images = OrderedDict()
         self.in_text_images = OrderedDict()
-        self.directory = None
 
     @override
     def parse_yaml(self, node: dict):
@@ -237,10 +238,16 @@ class ImagesConfig(BaseImagesConfig):
             self.insert_images,
             self.chapter_images.values(),
             self.in_text_images.values(),
-            filter(
-                lambda x: x is not None,
-                [self.front_cover, self.back_cover, self.titlepage, self.toc],
-            ),
+            [
+                image
+                for image in (
+                    self.front_cover,
+                    self.back_cover,
+                    self.titlepage,
+                    self.toc,
+                )
+                if image is not None
+            ],
         )
 
 
@@ -269,7 +276,10 @@ class ImageInfo(ABC, DebugPrintable):
             offset_list = yaml_node["offset"]
             if len(offset_list) != 2:
                 raise ValueError(offset_list)
-            self._offset_px = tuple(self.length_to_px(offset) for offset in offset_list)
+            self._offset_px = (
+                self.length_to_px(offset_list[0]),
+                self.length_to_px(offset_list[1]),
+            )
 
     def length_to_unit(self, length: str, unit: str) -> float:
         ureg = pint.UnitRegistry()
@@ -407,7 +417,7 @@ def _canvas_size_px_helper(
     return width, height
 
 
-def parse_image_config(directory):
+def parse_image_config(directory: str | Path) -> ImagesConfig | None:
     directory = Path(directory)
     config_file = directory / "config.yaml"
 

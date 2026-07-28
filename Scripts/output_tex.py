@@ -17,6 +17,7 @@ import pint
 import regex
 from argparse_color_formatter import ColorHelpFormatter
 from Lib.config import (
+    BaseImagesConfig,
     Book,
     Chapter,
     ImageInfo,
@@ -101,7 +102,7 @@ def length_to_inches(length: str) -> float:
     return quantity.to("inch").magnitude
 
 
-def env_path_prepend(s_old: str, *args) -> str:
+def env_path_prepend(s_old: "str | None", *args) -> str:
     l = list(args)
     if s_old and not s_old.isspace():
         l.append(s_old)
@@ -331,6 +332,18 @@ def convert_book(
     global_image_config = GlobalImagesConfig.from_file(
         common_dir() / "TeX" / "Images" / "config.yaml"
     )
+    if (
+        global_image_config is None
+        or global_image_config.insert_filler is None
+        or global_image_config.credits_background is None
+        or global_image_config.after_credits is None
+    ):
+        logger.critical("`Common/TeX/Images/config.yaml` is missing or incomplete")
+        sys.exit(1)
+
+    if image_config.toc is None:
+        logger.critical("The volume's `Images/config.yaml` has no `table_of_contents`")
+        sys.exit(1)
 
     if image_config.front_cover is not None and not no_front_cover:
         content_lines.extend(
@@ -557,7 +570,7 @@ def work_image_path(
 
 
 def generate_images(
-    configs: "list[ImageInfo]",
+    configs: "list[BaseImagesConfig]",
     work_dir: Path,
     bleed_size: float,
     work_image_suffix=".png",
@@ -573,7 +586,7 @@ def generate_images(
 
 
 def check_generated_images(
-    configs: "list[ImageInfo]", work_dir: Path, work_image_suffix: str
+    configs: "list[BaseImagesConfig]", work_dir: Path, work_image_suffix: str
 ):
     missing = []
     for image_info in itertools.chain.from_iterable(
@@ -609,6 +622,9 @@ def generate_single_image(
 ):
     os.makedirs(output_path.parent, exist_ok=True)
     img = cv2.imread(str(input_path))
+    if img is None:
+        logger.critical(f"Could not read the image `{input_path}`")
+        sys.exit(1)
     logger.debug(np.shape(img))
 
     # Make black and white artwork use one channel
@@ -719,7 +735,7 @@ def main():
         "--version-tag",
         type=str,
         help=f"A text string describing the current book version, to be included in the credits page. If omitted, the current git commit hash (determined by `{colors.faint('git rev-parse')}`) is used",
-    ),
+    )
 
     parser.add_argument(
         "-p",
@@ -807,6 +823,8 @@ def main():
     work_dir = work_dir.resolve()
 
     images_config = parse_image_config(book_config.directory / "Images")
+    if images_config is None:
+        return
 
     convert_book(
         book_config,

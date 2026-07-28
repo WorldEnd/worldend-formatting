@@ -286,6 +286,8 @@ def main():
     all_replacement_counts = []
 
     output_path = Path(args.output) if args.output else None
+    if not args.in_place and output_path is None:
+        parser.error("--output is required when not using --in-place")
 
     for file_path in files:
         original_text = file_path.read_text(encoding="utf-8")
@@ -298,14 +300,13 @@ def main():
             (str(file_path), *item) for item in replacement_counts
         )
 
-        if args.in_place:
-            if new_text != original_text:
-                if args.backup:
-                    backup_path = file_path.with_suffix(file_path.suffix + ".bak")
-                    shutil.copy2(file_path, backup_path)
-                file_path.write_text(new_text, encoding="utf-8")
-        else:
+        if output_path is not None:
             write_output_file(file_path, input_path, output_path, new_text)
+        elif new_text != original_text:
+            if args.backup:
+                backup_path = file_path.with_suffix(file_path.suffix + ".bak")
+                shutil.copy2(file_path, backup_path)
+            file_path.write_text(new_text, encoding="utf-8")
 
     write_manual_review(all_manual_hits, manual_review_path)
 

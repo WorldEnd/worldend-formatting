@@ -1,15 +1,17 @@
 import subprocess
 
+from .project_dirs import root_dir
+
 
 def curr_git_commit_hash() -> str:
     return subprocess.check_output(
-        ["git", "rev-parse", "--verify", "HEAD", "--"], text=True
+        ["git", "rev-parse", "--verify", "HEAD", "--"], text=True, cwd=root_dir()
     ).strip()
 
 
 def is_git_dirty() -> bool:
     status_code = subprocess.run(
-        ["git", "diff-index", "--quiet", "HEAD", "--"]
+        ["git", "diff-index", "--quiet", "HEAD", "--"], cwd=root_dir()
     ).returncode
     if status_code == 0:
         return False

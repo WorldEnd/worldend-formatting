@@ -88,25 +88,27 @@ def resize_image(input_file: Path, output_file: Path, scale_height=True):
 
 def convert_zip_to_epub(output_file: Path, intermediate_output_directory: Path):
     with zipfile.ZipFile(output_file, "w", compression=zipfile.ZIP_STORED) as epub:
-        os.chdir(intermediate_output_directory)
+        epub.write(
+            intermediate_output_directory / "mimetype",
+            arcname="mimetype",
+            compress_type=zipfile.ZIP_STORED,
+        )
 
-        epub.write("mimetype", arcname="mimetype", compress_type=zipfile.ZIP_STORED)
-
-        for root, dirs, files in os.walk("META-INF"):
+        for root, dirs, files in os.walk(intermediate_output_directory / "META-INF"):
             for file in files:
                 if not file.endswith(".DS_Store"):
                     file_path = Path(root) / file
-                    epub.write(file_path)
-                    logger.debug(file_path)
+                    arcname = file_path.relative_to(intermediate_output_directory)
+                    epub.write(file_path, arcname=arcname)
+                    logger.debug(arcname)
 
-        for root, dirs, files in os.walk("OEBPS"):
+        for root, dirs, files in os.walk(intermediate_output_directory / "OEBPS"):
             for file in files:
                 if not file.endswith(".DS_Store"):
                     file_path = Path(root) / file
-                    epub.write(file_path)
-                    logger.debug(file_path)
-
-        epub.close()
+                    arcname = file_path.relative_to(intermediate_output_directory)
+                    epub.write(file_path, arcname=arcname)
+                    logger.debug(arcname)
 
 
 def convert_md_to_html(
@@ -227,6 +229,8 @@ def main():
     work_dir = work_dir.resolve()
 
     images_config = parse_image_config(book_config.directory / "Images")
+    if images_config is None:
+        return
 
     generator = EPUBGenerator.from_book_config(book_config, images_config)
 
